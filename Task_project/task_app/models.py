@@ -21,6 +21,7 @@ class Board(models.Model):
 class Task(models.Model):
     STATUS_CHOICES = [
         ('Incomplete', 'Incomplete'),
+        ('Pending' , 'Pending'),
         ('Complete', 'Complete'),
     ]
 
@@ -39,17 +40,37 @@ class Task(models.Model):
     is_important = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)  # Automatically set on update
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Incomplete')  # Task status
-    # assigned_to = models.ManyToManyField(
-    #     User, 
-    #     blank=True, 
-    #     related_name='tasks_assigned'  # Unique related name for reverse access
-    # )
 
     def __str__(self):
         return self.title
 
-# class SubTask(models.Model):
-#     name= models.CharField(max_length=250)
-#     for_task = models.ForeignKey(Task ,on_delete=models.CASCADE)
 
 
+
+
+
+class SubTask(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="subtasks")
+    title = models.CharField(max_length=255)
+    status = models.CharField(max_length=50, choices=[("Incomplete", "Incomplete"), ("Complete", "Complete")], default="Incomplete")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    assigned_to = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='subtasks_assigned'
+    )
+
+    def __str__(self):
+        return self.title
+    
+class Todo(models.Model):
+    subtask = models.ForeignKey(SubTask, related_name='todos', on_delete=models.CASCADE)
+    title = models.CharField(max_length=250)
+    description = models.TextField(blank=True, null=True)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.title

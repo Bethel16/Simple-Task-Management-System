@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button, Toast, ToastContainer } from "react-bootstrap";
 import axios from "axios";
+import Draggable from 'react-draggable';
+
 
 // Define the Task type
 interface Task {
@@ -13,7 +15,11 @@ interface Task {
 }
 
 
-const TaskCards: React.FC = () => {
+interface TaskListProps {
+  boardId: number;  // Receive boardId as a prop
+}
+
+const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [taskToast, setTaskToast] = useState<boolean>(false);
   const [taskData, setTaskData] = useState<Task>({
@@ -29,24 +35,38 @@ const TaskCards: React.FC = () => {
   const [taskToDelete, setTaskToDelete] = useState<string>("");
   const [showTaskUpdatedToast, setShowTaskUpdatedToast] = useState(false);
   const [showTaskDeletedToast, setShowTaskDeletedToast] = useState(false);
-  
+  const [showsubtaskModal, setshowsubtaskModal] = useState(false);
+
+
+  const handleOpenSecondModal = () => setshowsubtaskModal(true);
+  const handleCloseSecondModal = () => setshowsubtaskModal(false);
+
+
   // Fetch tasks from API
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         const userData = localStorage.getItem("userData");
-
+  
         if (userData) {
           const parsedUserData = JSON.parse(userData);
-
+  
           if (parsedUserData && parsedUserData.id) {
             const userId = parsedUserData.id;
-
-            const response = await axios.get(
-              `http://localhost:8000/api/user-task/${userId}/`
-            );
-
-            setTasks(response.data.tasks); // Set fetched tasks
+  
+            // Ensure boardId is set before making the request
+            if (boardId) {
+              const response = await axios.get(
+                `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
+              );
+  
+              setTasks(response.data.tasks); // Set fetched tasks for the board
+              console.log(tasks)
+            }
+             else {
+              console.error("Board ID not found.");
+            }
+            
           }
         } else {
           console.error("User data not found in local storage.");
@@ -54,10 +74,13 @@ const TaskCards: React.FC = () => {
       } catch (error) {
         console.error("Error fetching tasks:", error);
       }
-    };
 
+    };
+    
+  
     fetchTasks();
-  }, []);
+  }, [boardId]); // The effect will run whenever boardId changes
+  
 
   const triggerTaskUpdatedToast = () => {
     setShowTaskUpdatedToast(true);
@@ -91,16 +114,17 @@ const TaskCards: React.FC = () => {
           const userId = parsedUserData.id;
 
           const response = await axios.delete(
-            `http://localhost:8000/api/delete-task/${taskToDelete}/`
+            `http://localhost:8000/api/delete-task/${boardId}/${taskToDelete}/`
           );
           console.dir("task deleted sucessfully");
           if (response.status === 201) {
             // Fetch updated tasks
             triggerTaskDeletedToast();
             const updatedTasksResponse = await axios.get(
-              `http://localhost:8000/api/user-task/${userId}/`
+              `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
             );
             setTasks(updatedTasksResponse.data.tasks);
+            
             handleCloseDeleteModal();
           }
         }
@@ -123,7 +147,7 @@ const TaskCards: React.FC = () => {
     });
   };
 
-  const handleCloseModal = () => {
+const handleCloseModal = () => {
     setShowModal(false);
   };
 
@@ -158,7 +182,7 @@ const TaskCards: React.FC = () => {
           if (taskData.id) {
             // Update existing task
             const response = await axios.put(
-              `http://localhost:8000/api/edit-task/${taskData.id}/`,
+              `http://localhost:8000/api/edit-task/${boardId}/${taskData.id}/`,
               taskData,
               {
                 headers: {
@@ -172,31 +196,30 @@ const TaskCards: React.FC = () => {
               setTaskToast(true);
               // Fetch updated tasks
               const updatedTasksResponse = await axios.get(
-                `http://localhost:8000/api/user-task/${userId}/`
+                `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
               );
               setTasks(updatedTasksResponse.data.tasks);
+              setShowModal(false);
               setTimeout(() => {
                 setTaskToast(false);
-                setShowModal(false);
               }, 2000);
             }
           } else {
             // Create new task
             const response = await axios.post(
-              "http://localhost:8000/api/create-task/",
+              `http://localhost:8000/api/create-task/${boardId}/`,
               { ...taskData, created_by: userId }
             );
 
             if (response.status === 201) {
               setTaskToast(true);
-              // Fetch updated tasks
               const updatedTasksResponse = await axios.get(
-                `http://localhost:8000/api/user-task/${userId}/`
+                `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
               );
               setTasks(updatedTasksResponse.data.tasks);
+              setShowModal(false);
               setTimeout(() => {
-                setTaskToast(false);
-                setShowModal(false);
+              setTaskToast(false);
               }, 3000);
             }
           }
@@ -304,6 +327,8 @@ const TaskCards: React.FC = () => {
               >
                 <option value="Incomplete">Incomplete</option>
                 <option value="Complete">Complete</option>
+                <option value="Pending">Pending</option>
+
               </select>
             </div>
           </form>
@@ -318,6 +343,80 @@ const TaskCards: React.FC = () => {
         </Modal.Footer>
       </Modal>
 
+
+      <Modal show={showsubtaskModal} onHide={handleCloseSecondModal} centered>
+  <Modal.Body>
+    <form>
+      <div className="mb-3">
+        <label htmlFor="subtask-name" className="form-label">
+          Subtask Name
+        </label>
+        <input
+          type="text"
+          id="subtask-name"
+          className="form-control"
+          placeholder="Enter subtask name"
+        />
+      </div>
+      
+      <div className="mb-3">
+        <label htmlFor="subtask-desc" className="form-label">
+          Description
+        </label>
+        <textarea
+          id="subtask-desc"
+          className="form-control"
+          placeholder="Enter subtask description"
+        ></textarea>
+      </div>
+      
+      <div className="mb-3">
+        <label htmlFor="subtask-date" className="form-label">
+          Due Date
+        </label>
+        <input
+          type="date"
+          id="subtask-date"
+          className="form-control"
+        />
+      </div>
+
+      <div className="form-check form-switch mb-3">
+        <input
+          className="form-check-input"
+          type="checkbox"
+          id="subtask-important"
+        />
+        <label className="form-check-label" htmlFor="subtask-important">
+          Mark as Important
+        </label>
+      </div>
+
+      <div className="mb-3">
+        <label htmlFor="subtask-status" className="form-label">
+          Status
+        </label>
+        <select
+          id="subtask-status"
+          className="form-control"
+        >
+          <option value="Incomplete">Incomplete</option>
+          <option value="Complete">Complete</option>
+          <option value="Pending">Pending</option>
+        </select>
+      </div>
+    </form>
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseSecondModal}>
+      Close
+    </Button>
+    <Button variant="primary" onClick={handleCloseSecondModal}>
+      Save Changes
+    </Button>
+  </Modal.Footer>
+</Modal>
+
       {/* Toast for Task Creation */}
       <ToastContainer position="top-center" className="p-3">
         <Toast
@@ -329,10 +428,10 @@ const TaskCards: React.FC = () => {
         >
           <Toast.Header>
             <i className="fa fa-check-circle text-success me-2"></i>
-            <strong className="me-auto">Task Updated</strong>
+            <strong className="me-auto">Task Created</strong>
             <small>Just Now</small>
           </Toast.Header>
-          <Toast.Body>Your task has been updated successfully!</Toast.Body>
+          <Toast.Body>Your task has been created successfully!</Toast.Body>
         </Toast>
       </ToastContainer>
 
@@ -365,50 +464,84 @@ const TaskCards: React.FC = () => {
       
       {/* Display Task Cards */}
       <div className="row mt-4">
-        {/* Render Task Cards */}
-        {tasks.map((task) => (
-          
-          <div className="col-md-4 mb-4" key={task.id}>
-            <div className={`card task-card ${task.status.toLowerCase()}`}>
-              <div className="task-actions">
-                <button
-                  className="btn btn-icon"
-                  onClick={() => 
-                    handleEdit(task.id)}  // Clicking will call handleEdit with task.id
-                  title="Edit"
-                >
-                  <i className="fa fa-pencil"></i>
-                </button>
-                <button
-                  className="btn btn-icon"
-                  onClick={() => handleOpenDeleteModal(task.id)}
-                  title="Delete"
-                >
-                  <i className="fa fa-trash"></i>
-                </button>
-              </div>
-              <div className="card-body">
-                <h5 className="card-title">{task.title}</h5>
-                <p className="card-text">{task.description}</p>
-                <p className="card-text">
-                  <small className="text-muted">Due: {task.date}</small>
-                </p>
-                <p className="card-text">
-                  <small
-                    className={`badge badge-${task.is_important ? "danger" : "secondary"}`}
-                  >
-                    {task.is_important ? "Important" : "Normal"}
-                  </small>
-                </p>
-                <span
-                  className={`badge ${task.status === "Complete" ? "bg-success" : "bg-warning"}`}
-                >
-                  {task.status}
-                </span>
-              </div>
-            </div>
+  {/* Render Task Cards */}
+  {tasks.map((task) => (
+    <div className="col-md-4 mb-4" key={task.id}>
+      <div className={`card task-card ${task.status.toLowerCase()}`}>
+        <div className="task-actions">
+          <button
+            className="btn btn-icon"
+            onClick={() => handleEdit(task.id)} 
+            title="Edit"
+          >
+            <i className="fa fa-pencil"></i>
+          </button>
+          <button
+            className="btn btn-icon"
+            onClick={() => handleOpenDeleteModal(task.id)}
+            title="Delete"
+          >
+            <i className="fa fa-trash"></i>
+          </button>
+        </div>
+        <div className="card-body">
+          <h5 className="card-title">{task.title}</h5>
+          <p className="card-text">{task.description}</p>
+
+
+{/* Add Subtask Card */}
+<Draggable>
+  <div
+    className="card task-card add-task-card w-100 mb-2"
+    style={{
+      padding: '5px',
+      minHeight: '60px',
+      maxHeight: '60px',
+      border: '1px solid #ddd',
+      borderRadius: '5px',
+      backgroundColor: '#f8f9fa',
+      boxShadow: 'none',
+      fontSize: '12px',
+    }}
+  >
+    <div className="card-body text-center" style={{ padding: '5px' }}>
+      <i
+        className="fa fa-plus-circle mt-2"
+        onClick={handleOpenSecondModal}  // Trigger the modal on icon click
+        style={{ fontSize: '20px', marginBottom: '5px', marginTop: '5px' }}
+      ></i>
+      <h6 className="mt-0" style={{ fontSize: '14px', margin: '0' }}>Add Subtask</h6>
+      <p className="card-text mb-2" style={{ fontSize: '12px', margin: '0' }}>Click to add</p>
+    </div>
+  </div>
+</Draggable>
+
+
+          {/* Footer with Due Date and Status */}
+          <div className="d-flex justify-content-between align-items-center">
+            {/* Status Badge */}
+            <span
+              className={`badge ${task.status === "Complete" ? "bg-success" : "bg-warning"}`}
+            >
+              {task.status}
+            </span>
+            {/* Due Date */}
+            <p className="card-text" style={{ fontSize: '12px', marginBottom: '0' }}>
+              <small className="text-muted">Due: {task.date}</small>
+            </p>
           </div>
-        ))}
+          
+          {/* Task Importance */}
+          <p className="card-text">
+            <small className={`badge badge-${task.is_important ? "danger" : "secondary"}`}>
+              {task.is_important ? "Important" : "Normal"}
+            </small>
+          </p>
+        </div>
+      </div>
+    </div>
+  ))}
+
 
 
  {/* Modal for Confirm Delete */}
@@ -428,8 +561,6 @@ const TaskCards: React.FC = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
-
       
         {/* Add Task Card */}
         <div className="col-md-4 mb-4">

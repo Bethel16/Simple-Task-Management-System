@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button } from "react-bootstrap";
+import axios from "axios";
 
 interface SideBarProps {
   isCollapsed: boolean;
   toggleSidebar: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  onBoardSelect: (boardId: number) => void; // New prop to pass the selected board ID
 }
 
 interface Profile {
@@ -35,6 +37,7 @@ const SideBar: React.FC<SideBarProps> = ({
   toggleSidebar,
   isDarkMode,
   toggleDarkMode,
+  onBoardSelect,
 }) => {
   const sidebarBg = isDarkMode ? "#1e1e2f" : "#f8f9fa";
   const textColor = isDarkMode ? "#ffffff" : "#000000";
@@ -55,50 +58,73 @@ const SideBar: React.FC<SideBarProps> = ({
     setNewBoardTitle(e.target.value);
   };
 
-  const handleSaveBoard = () => {
-    const newBoard: Board = {
-      id: boards.length + 1, // Temporary ID generation (in a real app, it would come from the backend)
-      title: newBoardTitle,
-    };
+  const handleSaveBoard = async () => {
+    try {
+      const response = await axios.post(
+        `http://localhost:8000/api/create-board/`, // Update the API URL if needed
+        {
+          title: newBoardTitle,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
-    setBoards([...boards, newBoard]); // Add the new board to the boards state
-    setNewBoardTitle(""); // Clear the input field
-    setShowModal(false); // Close the modal
+      const newBoard: Board = response.data;
+      setBoards((prevBoards) => [...prevBoards, newBoard]);
+      setNewBoardTitle("");
+      setShowModal(false);
+    } catch (error) {
+      console.error("Error creating board:", error);
+      alert("Failed to create the board. Please try again.");
+    }
   };
 
   useEffect(() => {
-    const storedProfile = localStorage.getItem('userData');
+    const storedProfile = localStorage.getItem("userData");
     if (storedProfile) {
       setProfile(JSON.parse(storedProfile));
     } else {
       setProfile(null);
     }
 
+    const fetchBoards = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/api/boards/", {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        setBoards(response.data.boards);
+      } catch (error) {
+        console.error("Error fetching boards:", error);
+      }
+    };
 
-    
-    // Static data for boards (Replace with dynamic data from API if needed)
-    const staticBoards: Board[] = [
-      { id: 1, title: "Board 1" },
-      { id: 2, title: "Board 2" },
-      { id: 3, title: "Board 3" },
-    ];
-    setBoards(staticBoards);
-  }, []);
+    fetchBoards(); // Call the fetch function
+  }, []); // Empty dependency array means this effect runs once when the component mounts
 
   const handleLogout = () => {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('csrfToken');
-    window.location.href = '/login'; // Redirect to login after logout
+    localStorage.removeItem("userData");
+    localStorage.removeItem("csrfToken");
+    window.location.href = "/login";
+     // Redirect to login after logout
   };
+
+  const generateAvatar = (email: string | null) => {
+    const hash = email
+      ? new TextEncoder().encode(email.trim().toLowerCase()).reduce((acc, curr) => acc + curr, 0)
+      : 0;
+    const gravatarUrl = `https://www.gravatar.com/avatar/${hash}?d=identicon`;
+    return gravatarUrl;
+  };
+  
 
   if (!profile) {
     return <h6>No profile data available. Please log in.</h6>;
   }
-
-  const handleBoardClick = (boardId: number) => {
-    console.log(`Board clicked: ${boardId}`);
-    // Handle board click logic (e.g., navigate to the board page)
-  };
 
   return (
     <div
@@ -113,6 +139,8 @@ const SideBar: React.FC<SideBarProps> = ({
         top: "0",
         left: "0",
         boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        overflowY: "auto",
+        zIndex: 10,
       }}
     >
       {/* Toggle Button */}
@@ -137,62 +165,143 @@ const SideBar: React.FC<SideBarProps> = ({
           <i className={`fa ${isCollapsed ? "fa-angle-right" : "fa-angle-left"}`}></i>
         </button>
       </div>
-
+  
       {/* Profile Section */}
-      <div className="text-center py-4">
+      <div className="text-center py-4 profile-container">
         <img
-          src={'http://localhost:8000' + profile.profile.profile_image}
+          src={generateAvatar(profile.profile.email)}
           alt="Profile"
-          className="rounded-circle"
-          style={{ width: "50px", height: "50px" }}
+          className="rounded-circle profile-img"
+          style={{
+            width: isCollapsed ? "35px" : "50px",
+            height: isCollapsed ? "35px" : "50px",
+            transition: "width 0.3s, height 0.3s",
+          }}
         />
-        {!isCollapsed && <p className="mt-2">{profile.username}</p>}
-
+        {!isCollapsed && <p className="mt-2 profile-username">{profile.username}</p>}
+  
         <button className="btn btn-primary add-task-btn" onClick={handleLogout}>
           <i className="fa fa-sign-out" aria-hidden="true"></i>
           {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
+  
+     {/* Boards Section */}
+<div style={{ maxHeight: "400px", overflowY: "auto", paddingLeft: "15px" }}>
+ {/* Add Board Button */}
+<div
+  className="d-flex align-items-center mb-3"
+  style={{
+    justifyContent: isCollapsed ? "center" : "space-between", // Center when collapsed, space-between when expanded
+    alignItems: "center", // Ensure vertical alignment of the elements
+  }}
+>
+  {/* Center align Boards text */}
+  {!isCollapsed && (
+    <span
+      style={{
+        color: textColor,
+        fontSize: "16px",
+        fontWeight: "bold",
+        display: "flex",
+        justifyContent: "center", // Center horizontally
+        alignItems: "center", // Center vertically
+        textAlign: "center", // This centers the text
+        flexGrow: 1, // Allow Boards text to take up available space
+      }}
+    >
+      Boards
+    </span>
+  )}
 
-      {/* Boards List */}
-      <ul className="nav flex-column mt-4">
-        <li className="nav-item mb-3">
-          <a href="#" className="nav-link text-black">
-            <i className="fa fa-clipboard me-2" aria-hidden="true"></i>
-            {!isCollapsed && <span>Boards</span>}
-          </a>
-        </li>
-        {boards.map((board) => (
-          <li key={board.id} className="nav-item mb-3">
-            <a
-              href="#"
-              className="nav-link text-black"
-              onClick={() => handleBoardClick(board.id)}
-            >
-              <i className="fa fa-circle me-2" aria-hidden="true"></i>
-              {!isCollapsed && <span>{board.title}</span>}
-            </a>
-          </li>
-        ))}
-        <li>
-          <button
-            className="btn btn-success add-task-btn"
-            onClick={handleShowModal}
-          >
-            <i className="fa fa-plus me-2"></i>
-            {!isCollapsed && <span>Add Board</span>}
-          </button>
-        </li>
-      </ul>
+  {/* Add Board Button */}
+  <button
+    className="btn btn-success"
+    onClick={handleShowModal}
+    style={{
+      backgroundColor: "#28a745",
+      border: "none",
+      padding: "5px 10px",
+      borderRadius: "50%",
+      marginLeft: isCollapsed ? "0" : "auto", // Remove margin left when collapsed
+    }}
+  >
+    <i className="fa fa-plus" aria-hidden="true" style={{ color: "#fff" }}></i>
+  </button>
+</div>
 
+
+{/* Boards List */}
+{boards.map((board) => (
+  <li
+    key={board.id}
+    className="nav-item mb-2" // Adjust margin for compactness
+    style={{
+      transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
+      listStyleType: "none", // Remove dot/bullet style from the list item
+    }}
+  >
+    <a
+      href="#"
+      className="nav-link text-black"
+      onClick={() => onBoardSelect(board.id)}
+      style={{
+        display: "flex",
+        alignItems: "center", // Vertically center icon and title
+        padding: "5px 10px", // Reduce padding for more compact layout
+        cursor: "pointer", // Show pointer on hover
+        textDecoration: "none", // Remove underline
+      }}
+    >
+      {/* Icon with circular background */}
+      <i
+        className="fa fa-clipboard"
+        aria-hidden="true"
+        style={{
+          fontSize: "18px",
+          width: "35px",
+          height: "35px",
+          borderRadius: "50%", // Circular icon
+          backgroundColor: isDarkMode ? "#444" : "#ddd",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          marginRight: "10px", // Space between icon and title
+          transition: "background-color 0.3s ease-in-out",
+        }}
+      ></i>
+
+      {/* Show board title only when not collapsed */}
+      {!isCollapsed && (
+        <span style={{ marginLeft: isCollapsed ? 0 : "10px" }}>
+          {board.title}
+        </span>
+      )}
+    </a>
+  </li>
+))}
+
+</div>
+
+  
       {/* Dark Mode Toggle */}
       <button
         className="btn btn-light mt-auto"
         onClick={toggleDarkMode}
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+        }}
       >
-        {isDarkMode ? <i className="fa fa-sun-o" aria-hidden="true"></i> : <i className="fa fa-moon-o" aria-hidden="true"></i>}
+        {isDarkMode ? (
+          <i className="fa fa-sun-o" aria-hidden="true"></i>
+        ) : (
+          <i className="fa fa-moon-o" aria-hidden="true"></i>
+        )}
       </button>
-
+  
       {/* Create Board Modal */}
       <Modal show={showModal} onHide={handleCloseModal} centered>
         <Modal.Header closeButton>
@@ -200,7 +309,6 @@ const SideBar: React.FC<SideBarProps> = ({
         </Modal.Header>
         <Modal.Body>
           <form>
-            {/* Title */}
             <div className="mb-3">
               <label htmlFor="task-title" className="form-label">
                 Board Title
@@ -229,6 +337,7 @@ const SideBar: React.FC<SideBarProps> = ({
       </Modal>
     </div>
   );
+  
 };
 
 export default SideBar;

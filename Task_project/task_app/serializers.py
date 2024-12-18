@@ -72,3 +72,12 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ['id', 'created_by', 'title', 'description', 'date', 'status', 'created_at', 'updated_at','is_important']
+
+
+from rest_framework import serializers
+from .models import SubTask
+
+class SubTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubTask
+        fields = ['id', 'task', 'title', 'status', 'created_at', 'updated_at']

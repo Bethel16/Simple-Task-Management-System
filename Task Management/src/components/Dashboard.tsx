@@ -8,6 +8,7 @@ import TaskCards from "./TaskList";
 import { Modal, Button, Toast, ToastContainer } from "react-bootstrap";
 import axios from "axios";
 
+
 const Dashboard: React.FC = () => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isDarkMode, setDarkMode] = useState(false);
@@ -21,7 +22,11 @@ const Dashboard: React.FC = () => {
     is_important: false,
     status: "Incomplete",
   });
-
+  const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
+  // Handle board selection from sidebar
+  const handleBoardSelect = (boardId: number) => {
+    setSelectedBoardId(boardId);
+  };
   useEffect(() => {
     // Show the login success toast when Dashboard loads
     setLoginToast(true);
@@ -130,6 +135,8 @@ const Dashboard: React.FC = () => {
         toggleSidebar={toggleSidebar}
         isDarkMode={isDarkMode}
         toggleDarkMode={toggleDarkMode}
+        onBoardSelect={handleBoardSelect}  // Pass down the handleBoardSelect function
+
       />
 
       {/* Navbar */}
@@ -145,18 +152,37 @@ const Dashboard: React.FC = () => {
           width: "100%",
         }}
       >
-        {/* Add Task Button */}
-        <div className="container mt-4">
-          <button
-            className="btn btn-success add-task-btn"
-            onClick={handleAddTask}
-          >
-            <i className="fa fa-plus me-2"></i> Add Task
-          </button>
-        </div>
+       {/* Add Task Button */}
+{selectedBoardId && (
+  <div className="container mt-4">
+    <button
+      className="btn btn-success add-task-btn"
+      onClick={handleAddTask}
+    >
+      <i className="fa fa-plus me-2"></i> Add Task
+    </button>
+  </div>
+)}
 
-        {/* Task Cards */}
-        <TaskCards />
+
+      {/* Task Cards */}
+<div className="task-container">
+  {selectedBoardId ? (
+    <TaskCards boardId={selectedBoardId} />
+  ) : (
+    <h4
+    style={{
+      position: "relative", // Ensures top positioning works
+      top: "100px",         // 100px from the top
+      fontWeight: "600",    // Bold font weight
+      textAlign: "center",  // Center the text
+    }}
+    >
+      Select a board to view its tasks.
+    </h4>
+  )}
+</div>
+
 
         {/* Modal for Add Task */}
         <Modal show={showModal} onHide={handleCloseModal} centered>

@@ -121,30 +121,35 @@ def login_view(request):
 
     return JsonResponse({'error': 'POST request required'}, status=400)
 
-# List Users View (GET request to list all users excluding logged-in user)
+# List Tasks for a Specific User and Board View (GET request)
 @csrf_exempt
-def user_task_list(request, user_id):
+def user_task_list(request, user_id, board_id):
     if request.method == "GET":
-        user_tasks = Task.objects.filter(created_by=user_id)
+        # Filter tasks by both user_id and board_id
+        user_tasks = Task.objects.filter(created_by=user_id, for_board=board_id)  # Ensure correct field names
+
         task_data = [{
-                        'id' : task.id,
-                'title': task.title,
-                'description': task.description,
-                'date': task.date,
-                'status': task.status,
-                'is_important': task.is_important ,
-                'created_at' : task.created_at,
-                'updated_at' : task.updated_at
-            } for task in user_tasks]
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'date': task.date,
+            'status': task.status,
+            'is_important': task.is_important,
+            'created_at': task.created_at,
+            'updated_at': task.updated_at
+        } for task in user_tasks]
+
         return JsonResponse({
-            'tasks' : task_data 
-        }, status = 201)
+            'tasks': task_data
+        }, status=200)  # Return status 200 for successful response
+
     return JsonResponse({'error': 'GET request required'}, status=400)
 
 
 @csrf_exempt
-def create_task_view(request):
+def create_task_view(request, boardId):
     if request.method == "POST":
+        # Parse the incoming JSON data
         data = json.loads(request.body)
         title = data.get('title')
         description = data.get('description', '')
@@ -163,28 +168,34 @@ def create_task_view(request):
         except User.DoesNotExist:
             return JsonResponse({'error': 'Creator user not found.'}, status=404)
 
-        # Create the task
+        # Check if the board exists
+        try:
+            board = Board.objects.get(id=boardId)
+        except Board.DoesNotExist:
+            return JsonResponse({'error': 'Board not found.'}, status=404)
+
+        # Create the task and associate it with the board
         task = Task.objects.create(
             title=title,
             description=description,
             date=date,
             created_by=created_by_user,  # Assign the User instance here
             status=status,
-            is_important=is_important
+            is_important=is_important,
+            for_board=board  # Associate the task with the board
         )
 
-        # Serialize and return the task data
-        task_serializer = TaskSerializer(task)
-        print(task.id)
+        # Return the task data in the response
         return JsonResponse({
-            'id' : task.id,
-             'title': task.title,
-                'description': task.description,
-                'date': task.date,
-                'status': task.status,
-                'is_important': task.is_important ,
-                'created_at' : task.created_at,
-                'updated_at' : task.updated_at
+            'id': task.id,
+            'title': task.title,
+            'description': task.description,
+            'date': task.date,
+            'status': task.status,
+            'is_important': task.is_important,
+            'created_at': task.created_at,
+            'updated_at': task.updated_at,
+            'board_id': task.for_board.id  # Include board ID for reference
         }, status=201)
 
     return JsonResponse({'error': 'POST request required'}, status=400)
@@ -200,17 +211,20 @@ from .models import Task
 from .serializers import TaskSerializer
 
 @csrf_exempt
-def edit_task(request, task_id):
+def edit_task(request, boardId, task_id):
     try:
-        task = Task.objects.get(id=task_id)
+        # Ensure the task exists and belongs to the provided boardId
+        task = Task.objects.get(id=task_id, for_board_id=boardId)
     except Task.DoesNotExist:
-        return JsonResponse({'error': 'Task not found'}, status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({'error': 'Task not found or does not belong to the specified board'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PUT':
         try:
+            # Parse the incoming JSON data
             data = JSONParser().parse(request)  # Parse the JSON body
             serializer = TaskSerializer(task, data=data)
             if serializer.is_valid():
+                # Save the updated task
                 serializer.save()
                 return JsonResponse(serializer.data, status=status.HTTP_200_OK)
             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -222,17 +236,18 @@ def edit_task(request, task_id):
 
 
 from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404
 @csrf_exempt
-def delete_task(request, task_id):
+def delete_task(request, boardId, task_id):
     try:
-        task = Task.objects.get(id=task_id)
+        # Ensure the task exists and belongs to the provided boardId
+        task = Task.objects.get(id=task_id, for_board_id=boardId)
         task.delete()
         return JsonResponse({"message": "Task deleted successfully"}, status=201)
     except Task.DoesNotExist:
-        return JsonResponse({"error": "Task not found"}, status=404)
+        return JsonResponse({"error": "Task not found or does not belong to the specified board"}, status=404)
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
-
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 from django.views.decorators.csrf import csrf_exempt
@@ -258,3 +273,72 @@ def create_board(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid method'}, status=405)
+
+@csrf_exempt
+def get_boards(request):
+    if request.method == "GET":
+        boards = Board.objects.all()
+        board_data = [{
+                'id' : board.id,
+                'title': board.name,
+               } for board in boards]
+        return JsonResponse({
+            'boards' : board_data 
+        }, status = 201)
+    return JsonResponse({'error': 'GET request required'}, status=400)
+
+
+from django.http import JsonResponse
+from rest_framework.parsers import JSONParser
+from django.views.decorators.csrf import csrf_exempt
+from .models import SubTask, Task
+from .serializers import SubTaskSerializer
+
+@csrf_exempt
+def create_subtask(request, task_id):
+    if request.method == "POST":
+        try:
+            task = Task.objects.get(id=task_id)
+            data = JSONParser().parse(request)
+            data['task'] = task.id  # Link the subtask to the task
+            serializer = SubTaskSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse(serializer.data, status=201)
+            return JsonResponse(serializer.errors, status=400)
+        except Task.DoesNotExist:
+            return JsonResponse({'error': 'Task not found'}, status=404)
+
+@csrf_exempt
+def list_subtasks(request, task_id):
+    if request.method == "GET":
+        try:
+            subtasks = SubTask.objects.filter(task_id=task_id)
+            serializer = SubTaskSerializer(subtasks, many=True)
+            return JsonResponse(serializer.data, safe=False, status=200)
+        except Task.DoesNotExist:
+            return JsonResponse({'error': 'Task not found'}, status=404)
+
+@csrf_exempt
+def edit_subtask(request, subtask_id):
+    try:
+        subtask = SubTask.objects.get(id=subtask_id)
+    except SubTask.DoesNotExist:
+        return JsonResponse({'error': 'SubTask not found'}, status=404)
+
+    if request.method == "PUT":
+        data = JSONParser().parse(request)
+        serializer = SubTaskSerializer(subtask, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=200)
+        return JsonResponse(serializer.errors, status=400)
+
+@csrf_exempt
+def delete_subtask(request, subtask_id):
+    try:
+        subtask = SubTask.objects.get(id=subtask_id)
+        subtask.delete()
+        return JsonResponse({'message': 'SubTask deleted successfully'}, status=200)
+    except SubTask.DoesNotExist:
+        return JsonResponse({'error': 'SubTask not found'}, status=404)

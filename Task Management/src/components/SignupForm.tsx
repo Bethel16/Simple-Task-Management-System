@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Toast, ToastContainer } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 interface AuthFormProps {
   isDarkMode: boolean;
@@ -24,11 +26,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ isDarkMode, toggleDarkMode }) => {
     password2: "",
   });
   const [error, setError] = useState("");
-
-  const formBg = isDarkMode ? "#1e1e2f" : "#ffffff";
-  const textColor = isDarkMode ? "#ffffff" : "#000000";
-  const inputBg = isDarkMode ? "#2a2a3e" : "#f8f9fa";
-  const inputTextColor = isDarkMode ? "#ffffff" : "#000000";
+  const [showToast, setShowToast] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -68,7 +67,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ isDarkMode, toggleDarkMode }) => {
 
       console.log("User registered:", response.data);
       setError(""); // Clear previous errors
-      alert("Registration successful! You can now log in.");
+      setShowToast(true); // Show the success toast
+      navigate("/login");
+
     } catch (err) {
       // Improved error handling
       if (axios.isAxiosError(err) && err.response) {
@@ -82,127 +83,117 @@ const AuthForm: React.FC<AuthFormProps> = ({ isDarkMode, toggleDarkMode }) => {
   };
 
   return (
-    <div
-      className="auth-container"
-      style={{
-        backgroundColor: formBg,
-        color: textColor,
-        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.3)",
-      }}
-    >
-      {/* Form Title */}
-      <h2 className="auth-title">Create Your Account</h2>
-      <form className="auth-form" onSubmit={handleSubmit}>
+    <div className={`login-dark ${isDarkMode ? "dark-mode" : "light-mode"}`}>
+      <form onSubmit={handleSubmit}>
+        <h2 className="auth-title">Create Your Account</h2>
+
         {/* First Name and Last Name fields */}
         <div className="form-group">
-          <label htmlFor="first_name">First Name</label>
           <input
             type="text"
             name="first_name"
             className="form-control"
             value={formData.first_name}
             onChange={handleChange}
-            style={{ backgroundColor: inputBg, color: inputTextColor }}
-            placeholder="Enter your first name"
+            placeholder="First Name"
             required
           />
         </div>
         <div className="form-group">
-          <label htmlFor="last_name">Last Name</label>
           <input
             type="text"
             name="last_name"
             className="form-control"
             value={formData.last_name}
             onChange={handleChange}
-            style={{ backgroundColor: inputBg, color: inputTextColor }}
-            placeholder="Enter your last name"
+            placeholder="Last Name"
             required
           />
         </div>
 
         {/* Username and Email fields */}
         <div className="form-group">
-          <label htmlFor="username">Username</label>
           <input
             type="text"
             name="username"
             className="form-control"
             value={formData.username}
             onChange={handleChange}
-            style={{ backgroundColor: inputBg, color: inputTextColor }}
-            placeholder="Enter your username"
+            placeholder="Username"
             required
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="email">Email Address</label>
           <input
             type="email"
             name="email"
             className="form-control"
             value={formData.email}
             onChange={handleChange}
-            style={{ backgroundColor: inputBg, color: inputTextColor }}
-            placeholder="Enter your email"
+            placeholder="Email"
             required
           />
         </div>
 
         {/* Password fields */}
         <div className="form-group">
-          <label htmlFor="password">Password</label>
           <input
             type="password"
             name="password"
             className="form-control"
             value={formData.password}
             onChange={handleChange}
-            style={{ backgroundColor: inputBg, color: inputTextColor }}
-            placeholder="Enter your password"
+            placeholder="Password"
             required
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="password2">Confirm Password</label>
           <input
             type="password"
             name="password2"
             className="form-control"
             value={formData.password2}
             onChange={handleChange}
-            style={{ backgroundColor: inputBg, color: inputTextColor }}
-            placeholder="Confirm your password"
+            placeholder="Confirm Password"
             required
           />
         </div>
 
         {/* Error message */}
-        {error && <p className="error-message text-danger">{error}</p>}
+        {error && <div className="error-message text-danger">{error}</div>}
 
         {/* Submit Button */}
-        <button type="submit" className="btn btn-primary auth-btn">
+        <button type="submit" className="btn btn-primary">
           Sign Up
         </button>
+
+        {/* Toggle between Login and Sign-Up */}
+        <p className="auth-toggle-text">
+          Already have an account?
+          <a href="/login" className="auth-toggle-btn">Login</a>
+        </p>
       </form>
 
-
-      <p className="auth-toggle-text">
-       "Already have an account?
-        <button
-          className="btn btn-link auth-toggle-btn"
-          
-        >
-          <a href="/login"> Login</a>
-        </button>
-      </p>
-
-      {/* Dark mode toggle */}
+      {/* Dark Mode Toggle */}
       <button className="btn dark-mode-toggle" onClick={toggleDarkMode}>
         {isDarkMode ? <i className="fa fa-sun-o"></i> : <i className="fa fa-moon-o"></i>}
       </button>
+
+      {/* Toast Container */}
+      <ToastContainer position="top-center" className="p-3">
+        <Toast
+          show={showToast}
+          onClose={() => setShowToast(false)}
+          bg="success"
+          delay={3000}
+          autohide
+          style={{ minWidth: "300px", width: "fit-content" }}
+        >
+          <Toast.Body>Registration successful! You can now log in.</Toast.Body>
+        </Toast>
+      </ToastContainer>
     </div>
   );
 };

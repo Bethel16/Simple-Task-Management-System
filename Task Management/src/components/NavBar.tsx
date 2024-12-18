@@ -5,6 +5,9 @@ interface NavBarProps {
   isDarkMode: boolean;
 }
 
+// interface BoardTitle {
+//   title : string;
+// }
 const NavBar: React.FC<NavBarProps> = ({ sidebarWidth, isDarkMode }) => {
   const navbarBg = isDarkMode ? "bg-dark" : "bg-light";
   const textColor = isDarkMode ? "text-white" : "text-dark";
