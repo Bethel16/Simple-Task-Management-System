@@ -1,0 +1,43 @@
+/* Navbar.css */
+
+/* Navbar spans the full width of the viewport */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%; /* Full width */
+    z-index: 1030; /* Ensure it appears above the sidebar */
+    transition: padding-left 0.3s ease; /* Smooth transition for sidebar shifts */
+  }
+  
+  /* Adjust padding when sidebar is expanded or collapsed */
+  .navbar.sidebar-expanded {
+    padding-left: 250px; /* Match expanded sidebar width */
+  }
+  .navbar.sidebar-collapsed {
+    padding-left: 80px; /* Match collapsed sidebar width */
+  }
+  
+  /* Responsive icons and links */
+  .nav-link i {
+    font-size: 1.2rem;
+  }
+  
+  /* Notification badge styling */
+  .navbar .badge {
+    border-radius: 50%;
+    padding: 0.3rem 0.4rem;
+  }
+  
+  /* For small screens, ensure navbar items stack properly */
+  @media (max-width: 768px) {
+    .navbar .form-control {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    .navbar .nav-link {
+      display: block;
+      text-align: center;
+    }
+  }
+  

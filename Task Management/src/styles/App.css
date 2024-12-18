@@ -1,0 +1,490 @@
+/* General Sidebar Styling */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  min-height: 100vh;
+  width: 250px;
+  background-color: var(--sidebar-bg, #f8f9fa);
+  color: var(--text-color, #000);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: width 0.3s;
+}
+
+.sidebar.collapsed {
+  width: 80px;
+}
+
+.sidebar.dark-mode {
+  --sidebar-bg: #1e1e2f;
+  --text-color: #fff;
+}
+
+.sidebar.light-mode {
+  --sidebar-bg: #f8f9fa;
+  --text-color: #000;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  height: 56px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--border-color, #ddd);
+}
+
+.toggle-btn {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
+/* Profile Section */
+.profile-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.profile-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+}
+
+.profile-name {
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Unified Menu Section */
+.menu-list,
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  width: 100%;
+  text-align: center;
+}
+
+.menu-item,
+.task-item {
+  margin-bottom: 10px;
+}
+
+.menu-link,
+.task-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text-color);
+  padding: 10px 20px;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.menu-link:hover,
+.task-link:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.menu-link i,
+.task-link i {
+  margin-right: 10px;
+}
+
+/* Task Categories Section */
+.task-section {
+  width: 100%;
+  padding: 20px 10px;
+}
+
+.task-title {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.task-title.hidden {
+  display: none;
+}
+
+/* Dark Mode Toggle */
+.dark-mode-toggle {
+  margin: 20px auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+
+
+
+/* Login Form Container */
+.login-container {
+  width: 400px;
+  padding: 30px;
+  border-radius: 10px;
+  margin: 100px auto;
+  text-align: center;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Form Styling */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.form-group label {
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.form-control {
+  padding: 12px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: background-color 0.3s, color 0.3s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+/* Button Styling */
+.login-btn {
+  background-color: #007bff;
+  color: #fff;
+  padding: 12px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.login-btn:hover {
+  background-color: #0056b3;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.5);
+}
+
+/* Dark Mode Toggle Button */
+.dark-mode-toggle {
+  margin-top: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #007bff;
+  color: #fff;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.dark-mode-toggle:hover {
+  background-color: #0056b3;
+  transform: scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-container {
+    width: 90%;
+    margin: 50px auto;
+  }
+}
+
+
+
+/* Auth Container */
+.auth-container {
+  width: 400px;
+  padding: 30px;
+  border-radius: 10px;
+  margin: 100px auto;
+  text-align: center;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Form Styling */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.form-group label {
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.form-control {
+  padding: 12px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: background-color 0.3s, color 0.3s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+/* Button Styling */
+.auth-btn {
+  background-color: #007bff;
+  color: #fff;
+  padding: 12px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.auth-btn:hover {
+  background-color: #0056b3;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.5);
+}
+
+/* Toggle Text and Button */
+.auth-toggle-text {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.auth-toggle-btn {
+  color: #007bff;
+  font-size: 14px;
+  font-weight: bold;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-toggle-btn:hover {
+  color: #0056b3;
+  text-decoration: none;
+}
+
+/* Dark Mode Toggle Button */
+.dark-mode-toggle {
+  margin-top: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #007bff;
+  color: #fff;
+  font-size: 18px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.dark-mode-toggle:hover {
+  background-color: #0056b3;
+  transform: scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .auth-container {
+    width: 90%;
+    margin: 50px auto;
+  }
+}
+
+/* Task Card */
+.task-card {
+  position: relative;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.task-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Status Colors */
+.task-card.important {
+  border-left: 4px solid #ff6f61;
+}
+
+.task-card.complete {
+  border-left: 4px solid #28a745;
+}
+
+.task-card.pending {
+  border-left: 4px solid #ffc107;
+}
+
+/* Badge Styling */
+.status-badge {
+  font-size: 14px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 20px;
+}
+
+.status-badge.important {
+  background-color: #ff6f61;
+  color: #fff;
+}
+
+.status-badge.complete {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.status-badge.pending {
+  background-color: #ffc107;
+  color: #000;
+}
+
+/* Action Icons */
+.task-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: #6c757d;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.btn-icon:hover {
+  color: #007bff;
+  transform: scale(1.1);
+}
+
+.btn-icon i {
+  display: inline-block;
+  pointer-events: none;
+}
+
+
+/* Add Task Button */
+.add-task-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.add-task-btn i {
+  font-size: 16px;
+}
+
+.add-task-btn:hover {
+  background-color: #0056b3; /* Darker blue */
+  transform: scale(1.05);
+}
+
+.add-task-btn:active {
+  transform: scale(0.95);
+}
+
+
+.task-card {
+  cursor: pointer;
+}
+
+.task-card.add-task-card {
+  background-color: #f8f9fa;
+  border: 2px dashed #007bff; /* Blue dashed border for the add task card */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20px;
+
+}
+
+.task-card.add-task-card:hover {
+  background-color: #e2e6ea;
+}
+
+.task-card .task-actions button {
+  background: transparent;
+  border: none;
+}
+
+.task-card .task-actions button i {
+  color: #007bff;
+}
+
+.task-card.add-task-card i {
+  color: #007bff;
+}
+
+.task-card.add-task-card h5 {
+  color: #007bff;
+  margin-top: 10px;
+  font-size: 16px;
+}
