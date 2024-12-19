@@ -44,33 +44,16 @@ class Task(models.Model):
     def __str__(self):
         return self.title
 
-
-
-
-
-
 class SubTask(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="subtasks")
     title = models.CharField(max_length=255)
-    status = models.CharField(max_length=50, choices=[("Incomplete", "Incomplete"), ("Complete", "Complete")], default="Incomplete")
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True , null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     assigned_to = models.ManyToManyField(
         User,
         blank=True,
         related_name='subtasks_assigned'
     )
-
-    def __str__(self):
-        return self.title
-    
-class Todo(models.Model):
-    subtask = models.ForeignKey(SubTask, related_name='todos', on_delete=models.CASCADE)
-    title = models.CharField(max_length=250)
-    description = models.TextField(blank=True, null=True)
-    is_completed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    due_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.title

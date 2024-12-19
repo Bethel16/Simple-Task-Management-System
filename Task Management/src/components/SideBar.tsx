@@ -73,7 +73,14 @@ const SideBar: React.FC<SideBarProps> = ({
       );
 
       const newBoard: Board = response.data;
-      setBoards((prevBoards) => [...prevBoards, newBoard]);
+      console.log(newBoard)
+      setBoards((prevBoards) => {
+        console.log("Previous Boards:", prevBoards); // Log the previous state
+        const updatedBoards = [...prevBoards, newBoard]; // Compute the new state
+        console.log("Updated Boards:", updatedBoards); // Log the updated state
+        return updatedBoards; // Update the state
+      });
+      
       setNewBoardTitle("");
       setShowModal(false);
     } catch (error) {
@@ -231,55 +238,55 @@ const SideBar: React.FC<SideBarProps> = ({
 </div>
 
 
-{/* Boards List */}
-{boards.map((board) => (
-  <li
-    key={board.id}
-    className="nav-item mb-2" // Adjust margin for compactness
-    style={{
-      transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
-      listStyleType: "none", // Remove dot/bullet style from the list item
-    }}
-  >
-    <a
-      href="#"
-      className="nav-link text-black"
-      onClick={() => onBoardSelect(board.id)}
+ {/* Boards List */}
+ {boards.map((board) => (
+    <li
+      key={board.id}
+      className="nav-item mb-2" // Adjust margin for compactness
       style={{
-        display: "flex",
-        alignItems: "center", // Vertically center icon and title
-        padding: "5px 10px", // Reduce padding for more compact layout
-        cursor: "pointer", // Show pointer on hover
-        textDecoration: "none", // Remove underline
+        transition: "transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out",
+        listStyleType: "none", // Remove dot/bullet style from the list item
       }}
     >
-      {/* Icon with circular background */}
-      <i
-        className="fa fa-clipboard"
-        aria-hidden="true"
+      <a
+        href="#"
+        className="nav-link text-black"
+        onClick={() => onBoardSelect(board.id)}
         style={{
-          fontSize: "18px",
-          width: "35px",
-          height: "35px",
-          borderRadius: "50%", // Circular icon
-          backgroundColor: isDarkMode ? "#444" : "#ddd",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          marginRight: "10px", // Space between icon and title
-          transition: "background-color 0.3s ease-in-out",
+          alignItems: "center", // Vertically center icon and title
+          padding: "5px 10px", // Reduce padding for more compact layout
+          cursor: "pointer", // Show pointer on hover
+          textDecoration: "none", // Remove underline
         }}
-      ></i>
+      >
+        {/* Icon with circular background */}
+        <i
+          className="fa fa-clipboard"
+          aria-hidden="true"
+          style={{
+            fontSize: "18px",
+            width: "35px",
+            height: "35px",
+            borderRadius: "50%", // Circular icon
+            backgroundColor: isDarkMode ? "#444" : "#ddd",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: "10px", // Space between icon and title
+            transition: "background-color 0.3s ease-in-out",
+          }}
+        ></i>
 
-      {/* Show board title only when not collapsed */}
-      {!isCollapsed && (
-        <span style={{ marginLeft: isCollapsed ? 0 : "10px" }}>
-          {board.title}
-        </span>
-      )}
-    </a>
-  </li>
-))}
+        {/* Show board title only when not collapsed */}
+        {!isCollapsed && (
+          <span style={{ marginLeft: isCollapsed ? 0 : "10px" }}>
+            {board.title}
+          </span>
+        )}
+      </a>
+    </li>
+  ))}
 
 </div>
 

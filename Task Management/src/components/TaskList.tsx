@@ -3,17 +3,26 @@ import { Modal, Button, Toast, ToastContainer } from "react-bootstrap";
 import axios from "axios";
 import Draggable from 'react-draggable';
 
-
+// Define the Subtask type
+interface Subtask {
+  id: string;
+  title: string;
+}
 // Define the Task type
 interface Task {
   id: string;
   title: string;
   description: string;
-  date: string;
-  is_important: boolean;
-  status: string;
+  date: string; // Ensure date is a string; if it's a Date object, adjust accordingly
+  is_important: boolean; // Indicates if the task is marked as important
+  status: string; // Task status, e.g., "Incomplete", "Complete", etc.
+  subtasks: Subtask[]; // Array of Subtask objects
 }
 
+interface User {
+  id: string;
+  username: string;
+}
 
 interface TaskListProps {
   boardId: number;  // Receive boardId as a prop
@@ -29,6 +38,7 @@ const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
     date: "",
     is_important: false,
     status: "Incomplete",
+    subtasks : []
   });
   const [tasks, setTasks] = useState<Task[]>([]); // Holds fetched tasks
   const [deleteModal, setDeleteModal] = useState<boolean>(false);
@@ -36,11 +46,99 @@ const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
   const [showTaskUpdatedToast, setShowTaskUpdatedToast] = useState(false);
   const [showTaskDeletedToast, setShowTaskDeletedToast] = useState(false);
   const [showsubtaskModal, setshowsubtaskModal] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>(""); // For storing the title of the new subtask
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null); // Currently active task ID
+  // State to manage the subtask title and status (done/undone)
+const [isSubtaskDone, setIsSubtaskDone] = useState(false); // Track subtask status (done/undone)
+
+// State to hold the user ID for the subtask
+const [userId, setUserId] = useState(''); // Set this state to the logged-in user's ID
+const [users, setUsers] = useState<User[]>([]); // State for storing users
 
 
-  const handleOpenSecondModal = () => setshowsubtaskModal(true);
+const handleOpenSecondModal = async (taskId: string) => {
+  console.log("Subtask card clicked for " + taskId);
+  setActiveTaskId(taskId); // Set the active task ID
+  setshowsubtaskModal(true); // Open the modal
+
+  try {
+    // Fetch users except the requester
+    const response = await axios.get(
+      `http://localhost:8000/api/get-users/`, // Adjust based on backend route
+     );    if (response.data && response.data.users) {
+      setUsers(response.data.users); // Set the fetched users in state
+    }
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    alert("Failed to fetch users. Please try again.");
+  }
+};
+
   const handleCloseSecondModal = () => setshowsubtaskModal(false);
 
+  const handleSaveSubtask = async () => {
+    if (!newSubtaskTitle.trim()) {
+      alert("Subtask title cannot be empty.");
+      return;
+    }
+  
+    if (!activeTaskId) {
+      console.error("Active Task ID is undefined or null.");
+      return;
+    }
+    console.log("activeTaskId", activeTaskId);
+  
+    try {
+      // Send the new subtask to the backend
+      const response = await axios.post(
+        `http://localhost:8000/api/create-subtask/${activeTaskId}/`, // Adjust based on backend route
+        { title: newSubtaskTitle },
+        { headers: { "Content-Type": "application/json" } }
+      );
+  
+      const newSubtask: Subtask = response.data;
+  
+      // Update the task's subtasks with the new subtask
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task.id === activeTaskId
+            ? { ...task, subtasks: [...task.subtasks, newSubtask] }
+            : task
+        )
+      );
+  
+      if (response.status === 201) {
+        // Trigger the toast notification for success
+        setTaskToast(true);
+  
+        // Fetch the updated list of tasks after creating a subtask
+        const updatedTasksResponse = await axios.get(
+          `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
+        );
+  
+        // Update the tasks state with the latest data
+        setTasks(updatedTasksResponse.data.tasks);
+  
+        // Close the subtask modal and reset the subtask input field
+        setShowModal(false);
+        setNewSubtaskTitle(""); // Clear the input field
+  
+        setTimeout(() => {
+          setTaskToast(false); // Hide the toast after a short delay
+        }, 3000);
+      }
+  
+      console.log("Subtask created:", newSubtask);
+    } catch (error) {
+      console.error("Error creating subtask:", error);
+    } finally {
+      // Reset modal visibility and inputs in case of failure
+      setshowsubtaskModal(false);
+      setNewSubtaskTitle(""); // Clear the input field after failure or success
+    }
+  };
+  
+  
 
   // Fetch tasks from API
   useEffect(() => {
@@ -98,6 +196,8 @@ const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
     setDeleteModal(true);
   };
 
+ 
+
   const handleCloseDeleteModal = () => {
     setTaskToDelete("");
     setDeleteModal(false);
@@ -144,6 +244,7 @@ const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
       date: "",
       is_important: false,
       status: "Incomplete",
+      subtasks : []
     });
   };
 
@@ -217,6 +318,7 @@ const handleCloseModal = () => {
                 `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
               );
               setTasks(updatedTasksResponse.data.tasks);
+              setUserId(userId);
               setShowModal(false);
               setTimeout(() => {
               setTaskToast(false);
@@ -345,77 +447,84 @@ const handleCloseModal = () => {
 
 
       <Modal show={showsubtaskModal} onHide={handleCloseSecondModal} centered>
-  <Modal.Body>
-    <form>
-      <div className="mb-3">
-        <label htmlFor="subtask-name" className="form-label">
-          Subtask Name
-        </label>
-        <input
-          type="text"
-          id="subtask-name"
-          className="form-control"
-          placeholder="Enter subtask name"
-        />
-      </div>
-      
-      <div className="mb-3">
-        <label htmlFor="subtask-desc" className="form-label">
-          Description
-        </label>
-        <textarea
-          id="subtask-desc"
-          className="form-control"
-          placeholder="Enter subtask description"
-        ></textarea>
-      </div>
-      
-      <div className="mb-3">
-        <label htmlFor="subtask-date" className="form-label">
-          Due Date
-        </label>
-        <input
-          type="date"
-          id="subtask-date"
-          className="form-control"
-        />
-      </div>
+      <Modal.Body>
+        <form>
+          <div className="mb-3">
+            <label htmlFor="subtask-name" className="form-label">
+              Subtask Name
+            </label>
+            <input
+              type="text"
+              id="subtask-name"
+              value={newSubtaskTitle}
+              onChange={(e) => setNewSubtaskTitle(e.target.value)}
+              className="form-control"
+              placeholder="Enter subtask name"
+            />
+          </div>
 
-      <div className="form-check form-switch mb-3">
-        <input
-          className="form-check-input"
-          type="checkbox"
-          id="subtask-important"
-        />
-        <label className="form-check-label" htmlFor="subtask-important">
-          Mark as Important
-        </label>
-      </div>
+          <div className="mb-3">
+            <label htmlFor="task-status" className="form-label">
+              Status
+            </label>
+            <select
+              id="task-status"
+              name="status"
+              className="form-control"
+              value={taskData.status}
+              onChange={handleInputChange}
+            >
+              <option value="Incomplete">Incomplete</option>
+              <option value="Complete">Complete</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
 
-      <div className="mb-3">
-        <label htmlFor="subtask-status" className="form-label">
-          Status
-        </label>
-        <select
-          id="subtask-status"
-          className="form-control"
-        >
-          <option value="Incomplete">Incomplete</option>
-          <option value="Complete">Complete</option>
-          <option value="Pending">Pending</option>
-        </select>
-      </div>
-    </form>
-  </Modal.Body>
-  <Modal.Footer>
-    <Button variant="secondary" onClick={handleCloseSecondModal}>
-      Close
-    </Button>
-    <Button variant="primary" onClick={handleCloseSecondModal}>
-      Save Changes
-    </Button>
-  </Modal.Footer>
-</Modal>
+          {/* User Dropdown for Assignment */}
+          <div className="mb-3">
+            <label htmlFor="subtask-assignee" className="form-label">
+              Assign to User
+            </label>
+            <select
+              id="subtask-assignee"
+              name="assignee"
+              className="form-control"
+            >
+              <option value="" disabled>Select User</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.username}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Add Checkbox for Status */}
+          <div className="mb-3">
+            <label htmlFor="subtask-status" className="form-label">
+              Mark as Done
+            </label>
+            <input
+              type="checkbox"
+              id="subtask-status"
+              checked={isSubtaskDone}
+              onChange={() => setIsSubtaskDone(!isSubtaskDone)} // Toggle the status
+            />
+            <span className="ms-2">Done</span>
+          </div>
+        </form>
+      </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleCloseSecondModal}>
+          Close
+        </Button>
+        <Button variant="primary" onClick={handleSaveSubtask}>
+          Save Changes
+        </Button>
+      </Modal.Footer>
+    </Modal>
+
 
       {/* Toast for Task Creation */}
       <ToastContainer position="top-center" className="p-3">
@@ -464,85 +573,168 @@ const handleCloseModal = () => {
       
       {/* Display Task Cards */}
       <div className="row mt-4">
-  {/* Render Task Cards */}
-  {tasks.map((task) => (
-    <div className="col-md-4 mb-4" key={task.id}>
-      <div className={`card task-card ${task.status.toLowerCase()}`}>
-        <div className="task-actions">
-          <button
-            className="btn btn-icon"
-            onClick={() => handleEdit(task.id)} 
-            title="Edit"
+        
+ {/* Render Task Cards */}
+{tasks.map((task) => (
+  <div className="col-md-4 mb-4" key={task.id}>
+    <div className={`card task-card ${task.status.toLowerCase()}`}>
+      <div className="task-actions">
+        <button
+          className="btn btn-icon"
+          onClick={() => handleEdit(task.id)} 
+          title="Edit"
+        >
+          <i className="fa fa-pencil"></i>
+        </button>
+        <button
+          className="btn btn-icon"
+          onClick={() => handleOpenDeleteModal(task.id)}
+          title="Delete"
+        >
+          <i className="fa fa-trash"></i>
+        </button>
+      </div>
+      <div className="card-body">
+        <h5 className="card-title">{task.title}</h5>
+        <p className="card-text">{task.description}</p>
+
+{/* Subtasks Section */}
+<div className="subtasks-list">
+  {task.subtasks.map((subtask) => (
+    <Draggable key={subtask.id}>
+      <div
+        className="card subtask-card w-100 mb-2"
+        style={{
+          padding: '10px',
+          minHeight: '60px',
+          border: '1px solid #ddd',
+          borderRadius: '5px',
+          backgroundColor: '#f8f9fa',
+          boxShadow: 'none',
+          fontSize: '12px',
+          position: 'relative', // Added to position the buttons
+        }}
+      >
+        <div className="card-body" style={{ padding: '10px' }}>
+          {/* Title aligned top left */}
+          <h6
+            className="mt-0"
+            style={{
+              fontSize: '14px',
+              margin: '0',
+              fontWeight: 'bold',
+              position: 'absolute', // Positions the title at the top left
+              top: '10px',
+              left: '10px',
+              textOverflow: 'ellipsis',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap', // Ensures the title doesn't overflow
+              maxWidth: 'calc(100% - 40px)', // Prevents title from overflowing
+            }}
           >
-            <i className="fa fa-pencil"></i>
-          </button>
-          <button
-            className="btn btn-icon"
-            onClick={() => handleOpenDeleteModal(task.id)}
-            title="Delete"
-          >
-            <i className="fa fa-trash"></i>
-          </button>
-        </div>
-        <div className="card-body">
-          <h5 className="card-title">{task.title}</h5>
-          <p className="card-text">{task.description}</p>
+            {subtask.title}
+          </h6>
 
-
-{/* Add Subtask Card */}
-<Draggable>
-  <div
-    className="card task-card add-task-card w-100 mb-2"
-    style={{
-      padding: '5px',
-      minHeight: '60px',
-      maxHeight: '60px',
-      border: '1px solid #ddd',
-      borderRadius: '5px',
-      backgroundColor: '#f8f9fa',
-      boxShadow: 'none',
-      fontSize: '12px',
-    }}
-  >
-    <div className="card-body text-center" style={{ padding: '5px' }}>
-      <i
-        className="fa fa-plus-circle mt-2"
-        onClick={handleOpenSecondModal}  // Trigger the modal on icon click
-        style={{ fontSize: '20px', marginBottom: '5px', marginTop: '5px' }}
-      ></i>
-      <h6 className="mt-0" style={{ fontSize: '14px', margin: '0' }}>Add Subtask</h6>
-      <p className="card-text mb-2" style={{ fontSize: '12px', margin: '0' }}>Click to add</p>
-    </div>
-  </div>
-</Draggable>
-
-
-          {/* Footer with Due Date and Status */}
-          <div className="d-flex justify-content-between align-items-center">
-            {/* Status Badge */}
-            <span
-              className={`badge ${task.status === "Complete" ? "bg-success" : "bg-warning"}`}
+          {/* Edit and Delete buttons */}
+          <div className="subtask-actions mt-2" style={{ position: 'absolute', top: '10px', right: '10px' }}>
+            <button
+              className="btn btn-sm btn-info me-2"
+              // onClick={() => handleEditSubtask(subtask.id)} // Handle edit subtask
+              title="Edit"
+              style={{ fontSize: '14px', padding: '5px 10px' }}
             >
-              {task.status}
-            </span>
-            {/* Due Date */}
-            <p className="card-text" style={{ fontSize: '12px', marginBottom: '0' }}>
-              <small className="text-muted">Due: {task.date}</small>
-            </p>
+              <i className="fa fa-pencil"></i>
+            </button>
+            <button
+              className="btn btn-sm btn-danger"
+              // onClick={() => handleDeleteSubtask(subtask.id)} // Handle delete subtask
+              title="Delete"
+              style={{ fontSize: '14px', padding: '5px 10px' }}
+            >
+              <i className="fa fa-trash"></i>
+            </button>
           </div>
-          
-          {/* Task Importance */}
-          <p className="card-text">
-            <small className={`badge badge-${task.is_important ? "danger" : "secondary"}`}>
-              {task.is_important ? "Important" : "Normal"}
-            </small>
-          </p>
         </div>
       </div>
-    </div>
+    </Draggable>
   ))}
+</div>
 
 
+
+
+        {/* Add Subtask Card */}
+        <Draggable>
+          <div
+            className="card add-subtask-card w-100 mb-2"
+            style={{
+              padding: '5px',
+              minHeight: '60px',
+              border: '1px solid #ddd',
+              borderRadius: '5px',
+              backgroundColor: '#f8f9fa',
+              boxShadow: 'none',
+              fontSize: '12px',
+            }}
+          >
+            <div className="card-body text-center" style={{ padding: '5px' }}>
+            <i
+  className="fa fa-plus-circle mt-2"
+  onClick={() => handleOpenSecondModal(task.id)} // Trigger the modal on icon click
+  style={{
+    fontSize: '20px',
+    marginBottom: '5px',
+    marginTop: '5px',
+    color: 'blue', // Blue color applied inline
+  }}
+></i>
+
+              <h6 className="mt-0" style={{ fontSize: '14px', margin: '0' }}>
+                Add Subtask
+              </h6>
+              <p className="card-text mb-2" style={{ fontSize: '12px', margin: '0' }}>
+                Click to add
+              </p>
+            </div>
+          </div>
+        </Draggable>
+
+        {/* Footer with Due Date and Status */}
+        <div className="d-flex justify-content-between align-items-center">
+          {/* Status Badge */}
+          <span
+            className={`badge ${task.status === "Complete" ? "bg-success" : "bg-warning"}`}
+          >
+            {task.status}
+          </span>
+          {/* Due Date */}
+          <p className="card-text" style={{ fontSize: '12px', marginBottom: '0' }}>
+            <small className="text-muted">Due: {task.date}</small>
+          </p>
+        </div>
+
+        {/* Task Importance */}
+        <p className="card-text">
+          <small className={`badge badge-${task.is_important ? "danger" : "secondary"}`}>
+            {task.is_important ? "Important" : "Normal"}
+          </small>
+        </p>
+      </div>
+    </div>
+  </div>
+))}
+
+
+  {/* Add Task Card */}
+  <div className="col-md-4 mb-4">
+          <div className="card task-card add-task-card">
+            <div className="card-body text-center" onClick={handleAddTask}>
+              <i className="fa fa-plus-circle fa-3x"></i>
+              <h5 className="mt-3">Add Task</h5>
+              <p className="card-text">Click to add a new task</p>
+            </div>
+          </div>
+        </div>
 
  {/* Modal for Confirm Delete */}
  <Modal show={deleteModal} onHide={handleCloseDeleteModal} centered>
@@ -562,16 +754,7 @@ const handleCloseModal = () => {
         </Modal.Footer>
       </Modal>
       
-        {/* Add Task Card */}
-        <div className="col-md-4 mb-4">
-          <div className="card task-card add-task-card">
-            <div className="card-body text-center" onClick={handleAddTask}>
-              <i className="fa fa-plus-circle fa-3x"></i>
-              <h5 className="mt-3">Add Task</h5>
-              <p className="card-text">Click to add a new task</p>
-            </div>
-          </div>
-        </div>
+      
       </div>
     </div>
   );

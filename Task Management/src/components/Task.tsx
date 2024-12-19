@@ -1,279 +1,92 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Button } from "react-bootstrap";
+import React, { useState } from "react";
 import axios from "axios";
 
-interface SideBarProps {
-  isCollapsed: boolean;
-  toggleSidebar: () => void;
-  isDarkMode: boolean;
-  toggleDarkMode: () => void;
-  onBoardSelect: (boardId: number) => void;  // New prop to pass the selected board ID
-}
-
-
-interface Profile {
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    bio: string;
-    profile_image: string | null;
-  }
-  
-  interface UserProfileResponse {
-    username: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    profile: Profile;
-  }
-interface Board {
-  id: number;
+// Define the Subtask interface
+interface Subtask {
+  id: string;
   title: string;
 }
 
-const SideBar: React.FC<SideBarProps> = ({
-  isCollapsed,
-  toggleSidebar,
-  isDarkMode,
-  toggleDarkMode,
-  onBoardSelect
-}) => {
-  const sidebarBg = isDarkMode ? "#1e1e2f" : "#f8f9fa";
-  const textColor = isDarkMode ? "#ffffff" : "#000000";
-  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [newBoardTitle, setNewBoardTitle] = useState(""); // State for new board title
+const TaskManager: React.FC = () => {
+  const [subtasks, setSubtasks] = useState<Subtask[]>([]);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>(""); // New subtask title
+  const [showSubtaskModal, setShowSubtaskModal] = useState<boolean>(false); // Modal visibility
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null); // Currently active task ID
 
-  const handleCloseModal = () => {
-    setShowModal(false);
+  // Function to open the modal for a specific task
+  const handleOpenSecondModal = (taskId: string) => {
+    console.log("Subtask card clicked for " + taskId);
+    setActiveTaskId(taskId); // Set the active task ID
+    setShowSubtaskModal(true); // Show the modal
   };
 
-  const handleShowModal = () => {
-    setShowModal(true);
-  };
+  // Function to save a new subtask
+  const handleSaveSubtask = async () => {
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewBoardTitle(e.target.value);
-  };
+    if (!newSubtaskTitle.trim()) {
+      alert("Subtask title cannot be empty.");
+      return;
+    }
 
-  const handleSaveBoard = async () => {
     try {
-      // Sending the board data to the API
       const response = await axios.post(
-        `http://localhost:8000/api/create-board/`, // Update the API URL if needed
+        `http://localhost:8000/api/create-subtask/${activeTaskId}`,
         {
-          title: newBoardTitle, // Data to send in the body
+          title: newSubtaskTitle,
+          task: activeTaskId,
         },
         {
           headers: {
-            "Content-Type": "application/json", // Ensure correct headers
+            "Content-Type": "application/json",
           },
         }
       );
 
-      // Assuming the API returns the newly created board
-      const newBoard: Board = response.data;
+      const newSubtask: Subtask = response.data;
 
-      // Update state with the new board
-      setBoards((prevBoards) => [...prevBoards, newBoard]);
+      // Add the new subtask to the list
+      setSubtasks((prevSubtasks) => [...prevSubtasks, newSubtask]);
 
-      // Clear the input and close the modal
-      setNewBoardTitle("");
-      setShowModal(false);
+      // Close the modal and reset the input
+      setShowSubtaskModal(false);
+      setNewSubtaskTitle("");
+      console.log("Subtask created:", newSubtask);
     } catch (error) {
-      console.error("Error creating board:", error);
-      alert("Failed to create the board. Please try again.");
+      console.error("Error creating subtask:", error);
+      alert("Failed to create subtask. Please try again.");
     }
   };
-
-  
-
-  useEffect(() => {
-    // Retrieve profile data from localStorage
-    const storedProfile = localStorage.getItem('userData');
-    if (storedProfile) {
-      setProfile(JSON.parse(storedProfile));
-    } else {
-      setProfile(null);
-    }
-
-    // Fetch boards data from the API
-    const fetchBoards = async () => {
-      try {
-        const response = await axios.get('http://localhost:8000/api/boards/', {
-          headers: {
-            "Content-Type": "application/json", // Ensure correct headers
-          },
-        });
-
-        // Set boards data to state
-        setBoards(response.data.boards);
-      } catch (error) {
-        console.error("Error fetching boards:", error);
-      }
-    };
-
-    fetchBoards(); // Call the fetch function
-  }, []); // Empty dependency array means this effect runs once when the component mounts
-
-  const handleLogout = () => {
-    localStorage.removeItem('userData');
-    localStorage.removeItem('csrfToken');
-    window.location.href = '/login'; // Redirect to login after logout
-  };
-
-  if (!profile) {
-    return <h6>No profile data available. Please log in.</h6>;
-  }
 
   return (
-    <div
-      className="sidebar"
-      style={{
-        backgroundColor: sidebarBg,
-        color: textColor,
-        width: isCollapsed ? "80px" : "250px",
-        transition: "width 0.3s",
-        minHeight: "100vh",
-        position: "fixed",
-        top: "0",
-        left: "0",
-        boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-      }}
-    >
+    <div>
+      {/* Subtask Modal */}
+      {showSubtaskModal && (
+        <div className="modal">
+          <h3>Create Subtask</h3>
+          <input
+            type="text"
+            value={newSubtaskTitle}
+            onChange={(e) => setNewSubtaskTitle(e.target.value)}
+            placeholder="Enter subtask title"
+          />
+          <button onClick={handleSaveSubtask}>Save Subtask</button>
+          <button onClick={() => setShowSubtaskModal(false)}>Cancel</button>
+        </div>
+      )}
 
-
-        {/* Toggle Button */}
-      <div
-        className="d-flex justify-content-end align-items-center"
-        style={{
-          height: "56px",
-          padding: "0 10px",
-          borderBottom: isDarkMode ? "1px solid #333" : "1px solid #ddd",
-        }}
-      >
-        <button
-          onClick={toggleSidebar}
-          className="btn btn-light"
-          style={{
-            borderRadius: "50%",
-            width: "40px",
-            height: "40px",
-            fontSize: "16px",
-          }}
-        >
-          <i className={`fa ${isCollapsed ? "fa-angle-right" : "fa-angle-left"}`}></i>
-        </button>
-      </div>
-
-      {/* Profile Section */}
-      <div className="text-center py-4">
-        <img
-          src={'http://localhost:8000' + profile.profile.profile_image}
-          alt="Profile"
-          className="rounded-circle"
-          style={{ width: "50px", height: "50px" }}
-        />
-        {!isCollapsed && <p className="mt-2">{profile.username}</p>}
-
-        <button className="btn btn-primary add-task-btn" onClick={handleLogout}>
-          <i className="fa fa-sign-out" aria-hidden="true"></i>
-          {!isCollapsed && <span>Logout</span>}
-        </button>
-      </div>
-      {/* Sidebar Content */}
-      <div className="d-flex justify-content-end align-items-center">
-        <button
-          onClick={toggleSidebar}
-          className="btn btn-light"
-          style={{
-            borderRadius: "50%",
-            width: "40px",
-            height: "40px",
-            fontSize: "16px",
-          }}
-        >
-          <i className={`fa ${isCollapsed ? "fa-angle-right" : "fa-angle-left"}`}></i>
-        </button>
-      </div>
-
-      <ul className="nav flex-column mt-4">
-        <li className="nav-item mb-3">
-          <a href="#" className="nav-link text-black">
-            <i className="fa fa-clipboard me-2" aria-hidden="true"></i>
-            {!isCollapsed && <span>Boards</span>}
-          </a>
-        </li>
-        {boards.map((board) => (
-          <li key={board.id} className="nav-item mb-3">
-            <a
-              href="#"
-              className="nav-link text-black"
-              onClick={() => onBoardSelect(board.id)}  // Pass the selected board ID
-            >
-              <i className="fa fa-circle me-2" aria-hidden="true"></i>
-              {!isCollapsed && <span>{board.title}</span>}
-            </a>
-          </li>
-        ))}
-        <li>
-          <button
-            className="btn btn-success add-task-btn"
-            onClick={handleShowModal}
-          >
-            <i className="fa fa-plus me-2"></i>
-            {!isCollapsed && <span>Add Board</span>}
-          </button>
-        </li>
-      </ul>
-
-      {/* Dark Mode Toggle */}
-      <button
-        className="btn btn-light mt-auto"
-        onClick={toggleDarkMode}
-      >
-        {isDarkMode ? <i className="fa fa-sun-o" aria-hidden="true"></i> : <i className="fa fa-moon-o" aria-hidden="true"></i>}
+      {/* Example task triggering subtask modal */}
+      <button onClick={() => handleOpenSecondModal("example-task-id")}>
+        Open Subtask Modal for Task
       </button>
 
-      {/* Create Board Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Create Board</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <form>
-
-
-            <div className="mb-3">
-              <label htmlFor="task-title" className="form-label">
-                Board Title
-              </label>
-              <input
-                type="text"
-                id="task-title"
-                name="title"
-                className="form-control"
-                placeholder="Enter board title"
-                value={newBoardTitle}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSaveBoard}>
-            Save Board
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* Subtasks List */}
+      <ul>
+        {subtasks.map((subtask) => (
+          <li key={subtask.id}>{subtask.title}</li>
+        ))}
+      </ul>
     </div>
   );
 };
 
-export default SideBar;
+export default TaskManager;

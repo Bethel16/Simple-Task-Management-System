@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile , Task
+from .models import Profile , Task , SubTask  
 
 
 # Profile Serializer to handle profile attributes
@@ -74,10 +74,8 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = ['id', 'created_by', 'title', 'description', 'date', 'status', 'created_at', 'updated_at','is_important']
 
 
-from rest_framework import serializers
-from .models import SubTask
 
 class SubTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubTask
-        fields = ['id', 'task', 'title', 'status', 'created_at', 'updated_at']
+        fields = ['id' , 'task' , 'title' , 'created_at' , 'updated_at', 'assigned_to']
