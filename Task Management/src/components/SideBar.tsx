@@ -46,7 +46,9 @@ const SideBar: React.FC<SideBarProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState(""); // State for new board title
   const [taskToast, setTaskToast] = useState<boolean>(false);
-  
+  const [showProfileEdit, setshowProfileEdit] = useState(false);
+  const [editProfileData, setEditProfileData] = useState<Profile | null>(null);
+
   const handleCloseModal = () => {
     setShowModal(false);
   };
@@ -55,8 +57,19 @@ const SideBar: React.FC<SideBarProps> = ({
     setShowModal(true);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewBoardTitle(e.target.value);
+
+  const handleEditShowModal = () => {
+    const storedProfile = localStorage.getItem("userData");
+    if (storedProfile) {
+      const parsedProfile = JSON.parse(storedProfile) as UserProfileResponse;
+      console.log(parsedProfile);
+      console.log(parsedProfile.profile)
+      setEditProfileData(parsedProfile.profile);
+    }
+    setshowProfileEdit(true);
+  };  
+  const handleEditCloseModal = () => {
+    setshowProfileEdit(false);
   };
 
   const handleSaveBoard = async () => {
@@ -90,10 +103,20 @@ const SideBar: React.FC<SideBarProps> = ({
     }
   };
 
+
+  const handleInpuProfiletChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditProfileData((prevData) =>
+      prevData ? { ...prevData, [name]: value } : null
+    );
+  };
+  
   useEffect(() => {
     const storedProfile = localStorage.getItem("userData");
     if (storedProfile) {
       setProfile(JSON.parse(storedProfile));
+      setEditProfileData(JSON.parse(storedProfile).profile);
+
     } else {
       setProfile(null);
     }
@@ -119,6 +142,35 @@ const SideBar: React.FC<SideBarProps> = ({
     localStorage.removeItem("csrfToken");
     window.location.href = "/login";
      // Redirect to login after logout
+  };
+  
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewBoardTitle(e.target.value);
+  };
+
+
+  const handleSaveProfile = async () => {
+    if (editProfileData) {
+      try {
+        const response = await axios.put(
+          "http://localhost:8000/api/update-profile/", // Replace with your API URL
+          editProfileData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        localStorage.setItem("userData", JSON.stringify(response.data));
+        setProfile(response.data); // Update profile state
+        setEditProfileData(response.data.profile); // Sync updated data in modal
+        setTaskToast(true); // Show toast
+        handleEditCloseModal(); // Close the modal
+      } catch (error) {
+        console.error("Error updating profile:", error);
+      }
+    }
   };
 
   const generateAvatar = (email: string | null) => {
@@ -194,7 +246,7 @@ const SideBar: React.FC<SideBarProps> = ({
     {!isCollapsed && (
       <button
         className="edit-icon-btn"
-        onClick={handleShowModal}
+        onClick={handleEditShowModal}
         title="Edit Profile"
       >
         <i className="fa fa-pencil" aria-hidden="true"></i>
@@ -365,6 +417,66 @@ const SideBar: React.FC<SideBarProps> = ({
           </Button>
         </Modal.Footer>
       </Modal>
+
+
+           {/* Edit Profile Modal */}
+           <Modal show={showProfileEdit} onHide={handleEditCloseModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Profile</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form>
+            <div className="mb-3">
+              <label htmlFor="first_name" className="form-label">
+                First Name
+              </label>
+              <input
+                type="text"
+                id="first_name"
+                name="first_name"
+                className="form-control"
+                value={editProfileData?.bio || ""}
+                onChange={handleInpuProfiletChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="last_name" className="form-label">
+                Last Name
+              </label>
+              <input
+                type="text"
+                id="last_name"
+                name="last_name"
+                className="form-control"
+                value={editProfileData?.last_name || ""}
+                onChange={handleInpuProfiletChange}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="email" className="form-label">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                className="form-control"
+                value={editProfileData?.email || ""}
+                onChange={handleInpuProfiletChange}
+              />
+            </div>
+          </form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleEditCloseModal}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSaveProfile}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
 
    {/* Toast for Task Creation */}
    <ToastContainer position="top-center" className="p-3">
