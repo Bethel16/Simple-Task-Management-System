@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button , Toast, ToastContainer} from "react-bootstrap";
 import axios from "axios";
 
 interface SideBarProps {
@@ -7,7 +7,7 @@ interface SideBarProps {
   toggleSidebar: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
-  onBoardSelect: (boardId: number) => void; // New prop to pass the selected board ID
+  onBoardSelect: (boardId: number , boardname : string) => void; // New prop to pass the selected board ID
 }
 
 interface Profile {
@@ -45,7 +45,8 @@ const SideBar: React.FC<SideBarProps> = ({
   const [boards, setBoards] = useState<Board[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [newBoardTitle, setNewBoardTitle] = useState(""); // State for new board title
-
+  const [taskToast, setTaskToast] = useState<boolean>(false);
+  
   const handleCloseModal = () => {
     setShowModal(false);
   };
@@ -80,7 +81,7 @@ const SideBar: React.FC<SideBarProps> = ({
         console.log("Updated Boards:", updatedBoards); // Log the updated state
         return updatedBoards; // Update the state
       });
-      
+      setTaskToast(true);
       setNewBoardTitle("");
       setShowModal(false);
     } catch (error) {
@@ -173,25 +174,47 @@ const SideBar: React.FC<SideBarProps> = ({
         </button>
       </div>
   
-      {/* Profile Section */}
+    
       <div className="text-center py-4 profile-container">
-        <img
-          src={generateAvatar(profile.profile.email)}
-          alt="Profile"
-          className="rounded-circle profile-img"
-          style={{
-            width: isCollapsed ? "35px" : "50px",
-            height: isCollapsed ? "35px" : "50px",
-            transition: "width 0.3s, height 0.3s",
-          }}
-        />
-        {!isCollapsed && <p className="mt-2 profile-username">{profile.username}</p>}
-  
-        <button className="btn btn-primary add-task-btn" onClick={handleLogout}>
-          <i className="fa fa-sign-out" aria-hidden="true"></i>
-          {!isCollapsed && <span>Logout</span>}
-        </button>
-      </div>
+  <div className="profile-image-container">
+    <img
+      src={
+        profile.profile.profile_image
+          ? `http://localhost:8000/${profile.profile.profile_image}`
+          : generateAvatar(profile.profile.email)
+      }
+      alt="Profile"
+      className="rounded-circle profile-img"
+      style={{
+        width: isCollapsed ? "50px" : "120px",
+        height: isCollapsed ? "50px" : "120px",
+        transition: "width 0.3s ease, height 0.3s ease",
+      }}
+    />
+    {!isCollapsed && (
+      <button
+        className="edit-icon-btn"
+        onClick={handleShowModal}
+        title="Edit Profile"
+      >
+        <i className="fa fa-pencil" aria-hidden="true"></i>
+      </button>
+    )}
+  </div>
+
+  {!isCollapsed && (
+    <p className="mt-2 profile-username">{profile.username}</p>
+  )}
+
+  <button
+    className="btn btn-primary add-task-btn d-flex align-items-center mt-3"
+    onClick={handleLogout}
+  >
+    <i className="fa fa-sign-out me-2" aria-hidden="true"></i>
+    {!isCollapsed && <span>Logout</span>}
+  </button>
+</div>
+
   
      {/* Boards Section */}
 <div style={{ maxHeight: "400px", overflowY: "auto", paddingLeft: "15px" }}>
@@ -251,7 +274,7 @@ const SideBar: React.FC<SideBarProps> = ({
       <a
         href="#"
         className="nav-link text-black"
-        onClick={() => onBoardSelect(board.id)}
+        onClick={() => onBoardSelect(board.id , board.title)}
         style={{
           display: "flex",
           alignItems: "center", // Vertically center icon and title
@@ -342,6 +365,26 @@ const SideBar: React.FC<SideBarProps> = ({
           </Button>
         </Modal.Footer>
       </Modal>
+
+   {/* Toast for Task Creation */}
+   <ToastContainer position="top-center" className="p-3">
+        <Toast
+          onClose={() => setTaskToast(false)}
+          show={taskToast}
+          delay={3000}
+          autohide
+          bg="success"
+        >
+          <Toast.Header>
+            <i className="fa fa-check-circle text-success me-2"></i>
+            <strong className="me-auto">Task Created successfully!</strong>
+            <small>Just Now</small>
+          </Toast.Header>
+          <Toast.Body>Board has been created successfully!</Toast.Body>
+        </Toast>
+      </ToastContainer>
+
+
     </div>
   );
   

@@ -23,9 +23,12 @@ const Dashboard: React.FC = () => {
     status: "Incomplete",
   });
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
+  const [selectedBoardname, setselectedBoardname] = useState("");
+
   // Handle board selection from sidebar
-  const handleBoardSelect = (boardId: number) => {
+  const handleBoardSelect = (boardId: number, boardname : string) => {
     setSelectedBoardId(boardId);
+    setselectedBoardname(boardname);
   };
   useEffect(() => {
     // Show the login success toast when Dashboard loads
@@ -47,9 +50,6 @@ const Dashboard: React.FC = () => {
 
   const sidebarWidth = isSidebarCollapsed ? 80 : 250;
 
-  const handleAddTask = () => {
-    setShowModal(true);
-  };
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -127,6 +127,7 @@ const Dashboard: React.FC = () => {
         color: isDarkMode ? "#ffffff" : "#000000",
         minHeight: "100vh",
         transition: "background-color 0.3s, color 0.3s",
+        marginLeft : "30px"
       }}
     >
       {/* Sidebar */}
@@ -152,23 +153,22 @@ const Dashboard: React.FC = () => {
           width: "100%",
         }}
       >
-       {/* Add Task Button */}
-{selectedBoardId && (
-  <div className="container mt-4">
-    <button
-      className="btn btn-success add-task-btn"
-      onClick={handleAddTask}
+      
+      <h4
+    style={{
+      position: "relative", // Ensures top positioning works
+      top: "20px",         // 100px from the top
+      fontWeight: "600",    // Bold font weight
+      textAlign: "center",  // Center the text
+      padding : "20px" , 
+    }}
     >
-      <i className="fa fa-plus me-2"></i> Add Task
-    </button>
-  </div>
-)}
-
+{selectedBoardname}    </h4>
 
       {/* Task Cards */}
 <div className="task-container">
   {selectedBoardId ? (
-    <TaskCards boardId={selectedBoardId} />
+    <TaskCards boardId={selectedBoardId} boardname= {selectedBoardname} />
   ) : (
     <h4
     style={{

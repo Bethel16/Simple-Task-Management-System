@@ -37,7 +37,7 @@ const NavBar: React.FC<NavBarProps> = ({ sidebarWidth, isDarkMode }) => {
           <input
             type="text"
             className={`form-control me-2 ${isDarkMode ? "bg-secondary text-white" : ""}`}
-            placeholder="Search"
+            placeholder="Search  Tasks"
           />
           <button className={`btn btn-outline-${isDarkMode ? "light" : "dark"}`} type="submit">
             Search

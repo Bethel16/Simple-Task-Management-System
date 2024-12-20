@@ -311,10 +311,11 @@ def get_users(request):
     # If the request is not a GET request, return an error message
     return JsonResponse({"error": "GET request required"}, status=400)
  
-
-
-from .models import Task, SubTask
+from django.http import JsonResponse
+from rest_framework.parsers import JSONParser
+from .models import SubTask, Task
 from .serializers import SubTaskSerializer
+from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 
 @csrf_exempt
@@ -332,6 +333,13 @@ def create_subtask(request, task_id):
             # Ensure that the task ID is correctly assigned to the subtask data
             data['task'] = task.id
 
+            # If no status is provided, set it to None (nullable)
+            if 'status' not in data:
+                data['status'] = None
+            request_id = request.user.id
+            if 'assigned_to' in data:
+                    data['assigned_to'] =[user_id for user_id in data['assigned_to'] if user_id!= request_id]
+            print(data['assigned_to'])
             # Create the subtask using the SubtaskSerializer
             serializer = SubTaskSerializer(data=data)
 
@@ -355,8 +363,30 @@ def create_subtask(request, task_id):
             print(f"Unexpected error: {e}")
             return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
+def edit_subtask(request, subtask_id):
+    try:
+        subtask = SubTask.objects.get(id=subtask_id)
+    except SubTask.DoesNotExist:
+        return JsonResponse({'error': 'SubTask not found'}, status=404)
 
-# List SubTasks
+    if request.method == "PUT":
+        try:
+            data = JSONParser().parse(request)
+            print("Received Data:", data)  # Log incoming data
+
+            # Validate and update the subtask
+            serializer = SubTaskSerializer(subtask, data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return JsonResponse(serializer.data, status=200)
+            print("Serializer Errors:", serializer.errors)  # Log errors
+            return JsonResponse(serializer.errors, status=400)
+        except Exception as e:
+            print("Exception:", e)  # Log exception details
+            return JsonResponse({'error': str(e)}, status=500)
+
+
 @csrf_exempt
 def list_subtasks(request, task_id):
     if request.method == "GET":
@@ -368,33 +398,13 @@ def list_subtasks(request, task_id):
             return JsonResponse({'error': 'Task not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
-# Edit SubTask
-@csrf_exempt
-def edit_subtask(request, subtask_id):
-    try:
-        subtask = SubTask.objects.get(id=subtask_id)  # Ensure SubTask exists
-    except SubTask.DoesNotExist:
-        return JsonResponse({'error': 'SubTask not found'}, status=404)
-
-    if request.method == "PUT":
-        try:
-            data = JSONParser().parse(request)
-            serializer = SubTaskSerializer(subtask, data=data)
-            if serializer.is_valid():
-                serializer.save()
-                return JsonResponse(serializer.data, status=200)
-            return JsonResponse(serializer.errors, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-# Delete SubTask
 @csrf_exempt
 def delete_subtask(request, subtask_id):
+    print("subtaskId" , subtask_id)
     try:
         subtask = SubTask.objects.get(id=subtask_id)  # Ensure SubTask exists
         if request.method == "DELETE":
-            subtask.delete()
+            subtask.delete()  # Delete the subtask from the database
             return JsonResponse({'message': 'SubTask deleted successfully'}, status=200)
         else:
             return JsonResponse({'error': 'Invalid request method'}, status=405)

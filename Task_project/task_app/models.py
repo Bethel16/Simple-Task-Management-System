@@ -54,6 +54,18 @@ class SubTask(models.Model):
         blank=True,
         related_name='subtasks_assigned'
     )
+    STATUS_CHOICES = [
+        ('Incomplete', 'Incomplete'),
+        ('Complete', 'Complete'),
+        ('Pending', 'Pending'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        null=True,  # Allows null
+        blank=True,  # Allows blank
+        default=None  # Default can be set to None or a specific status if needed
+    )
 
     def __str__(self):
         return self.title

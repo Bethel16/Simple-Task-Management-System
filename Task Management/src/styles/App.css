@@ -1,3 +1,11 @@
+
+body {
+  font-family: "Unkempt", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+
 .profile-container {
   transition: transform 0.3s ease-in-out;
 }
@@ -214,7 +222,7 @@
 }
 
 /* Status Colors */
-.task-card.important {
+.task-card.incomplete {
   border-left: 4px solid #ff6f61;
 }
 
@@ -616,4 +624,44 @@ div::-webkit-scrollbar-thumb {
 
 div::-webkit-scrollbar-thumb:hover {
   background-color: #555; /* Darker on hover */
+}
+
+
+
+/* Profile image container for relative positioning */
+.profile-image-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Edit icon styling */
+.edit-icon-btn {
+  position: absolute;
+  bottom: 5px; /* Adjust based on image size */
+  right: 5px;
+  width: 30px;
+  height: 30px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/* Hover effect for edit icon */
+.edit-icon-btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.1);
+}
+
+/* Profile image styling */
+.profile-img {
+  transition: width 0.3s ease, height 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }

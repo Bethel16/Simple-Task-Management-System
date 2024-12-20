@@ -74,8 +74,11 @@ class TaskSerializer(serializers.ModelSerializer):
         fields = ['id', 'created_by', 'title', 'description', 'date', 'status', 'created_at', 'updated_at','is_important']
 
 
-
 class SubTaskSerializer(serializers.ModelSerializer):
+    assigned_to = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all()
+    )
+
     class Meta:
         model = SubTask
-        fields = ['id' , 'task' , 'title' , 'created_at' , 'updated_at', 'assigned_to']
+        fields = ['id', 'task', 'title', 'created_at', 'updated_at', 'assigned_to', 'status']

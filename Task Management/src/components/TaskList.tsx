@@ -3,11 +3,19 @@ import { Modal, Button, Toast, ToastContainer } from "react-bootstrap";
 import axios from "axios";
 import Draggable from 'react-draggable';
 
-// Define the Subtask type
+
+// Define the Subtask type with status included
 interface Subtask {
   id: string;
   title: string;
+  assigned_to: { id: string; username: string }[];  // Array of user objects (assuming 'id' and 'username' for users)
+  created_at: Date | null;  // Allow null for empty state
+  updated_at: Date | null;  // Same for updated_at
+  status: string | null;  // Status can be 'Incomplete', 'Complete', 'Pending', or null
 }
+
+
+
 // Define the Task type
 interface Task {
   id: string;
@@ -26,9 +34,10 @@ interface User {
 
 interface TaskListProps {
   boardId: number;  // Receive boardId as a prop
+  boardname: string;
 }
 
-const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
+const TaskCards: React.FC<TaskListProps> = ({boardId , boardname}) => {
   const [showModal, setShowModal] = useState<boolean>(false);
   const [taskToast, setTaskToast] = useState<boolean>(false);
   const [taskData, setTaskData] = useState<Task>({
@@ -40,27 +49,44 @@ const TaskCards: React.FC<TaskListProps> = ({boardId}) => {
     status: "Incomplete",
     subtasks : []
   });
+
+  
+//  Initialize state with default values
+const [subtaskData, setSubTaskData] = useState<Subtask>({
+  id: "",
+  title: "",
+  assigned_to: [], // Default to an empty array
+  created_at: null,
+  updated_at: null,
+  status: null,
+});
+
   const [tasks, setTasks] = useState<Task[]>([]); // Holds fetched tasks
   const [deleteModal, setDeleteModal] = useState<boolean>(false);
   const [taskToDelete, setTaskToDelete] = useState<string>("");
+  
   const [showTaskUpdatedToast, setShowTaskUpdatedToast] = useState(false);
   const [showTaskDeletedToast, setShowTaskDeletedToast] = useState(false);
   const [showsubtaskModal, setshowsubtaskModal] = useState(false);
+  
   const [newSubtaskTitle, setNewSubtaskTitle] = useState<string>(""); // For storing the title of the new subtask
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null); // Currently active task ID
-  // State to manage the subtask title and status (done/undone)
-const [isSubtaskDone, setIsSubtaskDone] = useState(false); // Track subtask status (done/undone)
+  const [isSubtaskDone, setIsSubtaskDone] = useState(false); // Track subtask status (done/undone)
 
 // State to hold the user ID for the subtask
 const [userId, setUserId] = useState(''); // Set this state to the logged-in user's ID
 const [users, setUsers] = useState<User[]>([]); // State for storing users
 
 
+
+const [itemToDelete, setItemToDelete] = useState<string>("");
+const [itemType, setItemType] = useState<'task' | 'subtask' | null>(null); // Allow null or 'task'/'subtask'
+
 const handleOpenSecondModal = async (taskId: string) => {
   console.log("Subtask card clicked for " + taskId);
   setActiveTaskId(taskId); // Set the active task ID
   setshowsubtaskModal(true); // Open the modal
-
+  resetSubtaskData(); // Clear any previous data
   try {
     // Fetch users except the requester
     const response = await axios.get(
@@ -77,67 +103,110 @@ const handleOpenSecondModal = async (taskId: string) => {
   const handleCloseSecondModal = () => setshowsubtaskModal(false);
 
   const handleSaveSubtask = async () => {
-    if (!newSubtaskTitle.trim()) {
-      alert("Subtask title cannot be empty.");
-      return;
-    }
-  
-    if (!activeTaskId) {
-      console.error("Active Task ID is undefined or null.");
-      return;
-    }
-    console.log("activeTaskId", activeTaskId);
-  
     try {
-      // Send the new subtask to the backend
-      const response = await axios.post(
-        `http://localhost:8000/api/create-subtask/${activeTaskId}/`, // Adjust based on backend route
-        { title: newSubtaskTitle },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      // Get user data from localStorage
+      const userData = localStorage.getItem("userData");
   
-      const newSubtask: Subtask = response.data;
+      if (userData) {
+        const parsedUserData = JSON.parse(userData);
   
-      // Update the task's subtasks with the new subtask
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
-          task.id === activeTaskId
-            ? { ...task, subtasks: [...task.subtasks, newSubtask] }
-            : task
-        )
-      );
+        if (parsedUserData && parsedUserData.id) {
+          const userId = parsedUserData.id;
   
-      if (response.status === 201) {
-        // Trigger the toast notification for success
-        setTaskToast(true);
+          if (!subtaskData.title.trim()) {
+            alert("Subtask title cannot be empty.");
+            return;
+          }
   
-        // Fetch the updated list of tasks after creating a subtask
-        const updatedTasksResponse = await axios.get(
-          `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
-        );
+          if (!activeTaskId) {
+            console.error("Active Task ID is undefined or null.");
+            return;
+          }
   
-        // Update the tasks state with the latest data
-        setTasks(updatedTasksResponse.data.tasks);
+          let response;
   
-        // Close the subtask modal and reset the subtask input field
-        setShowModal(false);
-        setNewSubtaskTitle(""); // Clear the input field
+          if (subtaskData.id) {
+            // Edit existing subtask
+            response = await axios.put(
+              `http://localhost:8000/api/subtasks/edit/${subtaskData.id}/`,
+              {
+                id: subtaskData.id,
+                task: activeTaskId,
+                title: subtaskData.title,
+                created_at: subtaskData.created_at || new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                assigned_to: subtaskData.assigned_to?.map((userObj) => userObj.id) || [],
+                status: subtaskData.status || null,
+              },
+              { headers: { "Content-Type": "application/json" } }
+            );
+          } else {
+            // Create new subtask
+            response = await axios.post(
+              `http://localhost:8000/api/create-subtask/${activeTaskId}/`,
+              {
+                ...subtaskData,
+                assigned_to: subtaskData.assigned_to?.map((userObj) => userObj.id) || [],
+                created_by: userId, // Include the user ID in the new subtask
+              },
+              { headers: { "Content-Type": "application/json" } }
+            );
+          }
   
-        setTimeout(() => {
-          setTaskToast(false); // Hide the toast after a short delay
-        }, 3000);
+          const updatedSubtask: Subtask = response.data;
+  
+          // Update tasks with the new or edited subtask
+          setTasks((prevTasks) =>
+            prevTasks.map((task) =>
+              task.id === activeTaskId
+                ? {
+                    ...task,
+                    subtasks: subtaskData.id
+                      ? task.subtasks.map((subtask) =>
+                          subtask.id === updatedSubtask.id ? updatedSubtask : subtask
+                        )
+                      : [...task.subtasks, updatedSubtask],
+                  }
+                : task
+            )
+          );
+  
+          // Handle success and reset modal
+          if (response.status === 200 || response.status === 201) {
+            setTaskToast(true);
+            const updatedTasksResponse = await axios.get(
+              `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
+            );
+            setTasks(updatedTasksResponse.data.tasks);
+  
+            // Reset state
+            setshowsubtaskModal(false);
+            setSubTaskData({
+              id: "",
+              title: "",
+              assigned_to: [],
+              created_at: null,
+              updated_at: null,
+              status: null,
+            });
+  
+            setTimeout(() => {
+              setTaskToast(false);
+            }, 3000);
+          }
+  
+          console.log("Subtask saved:", updatedSubtask);
+        } else {
+          alert("User ID not found. Please log in.");
+        }
+      } else {
+        alert("No user data found. Please log in.");
       }
-  
-      console.log("Subtask created:", newSubtask);
     } catch (error) {
-      console.error("Error creating subtask:", error);
-    } finally {
-      // Reset modal visibility and inputs in case of failure
-      setshowsubtaskModal(false);
-      setNewSubtaskTitle(""); // Clear the input field after failure or success
+      console.error("Error saving subtask:", error);
+      alert("Failed to save subtask. Please try again.");
     }
   };
-  
   
 
   // Fetch tasks from API
@@ -191,20 +260,38 @@ const handleOpenSecondModal = async (taskId: string) => {
     setTimeout(() => setShowTaskDeletedToast(false), 3000); // Auto hide after 3 seconds
   };
 
-  const handleOpenDeleteModal = (taskId: string) => {
-    setTaskToDelete(taskId);
+  const handleOpenDeleteModal = (id: string, type: 'task' | 'subtask') => {
+    setTaskToDelete(id);
     setDeleteModal(true);
+    setItemToDelete(id); // Store the item ID
+    setItemType(type); // Store whether it's a 'task' or 'subtask'
+    setDeleteModal(true); // Show the modal
   };
 
- 
+  const resetSubtaskData = () => {
+    setSubTaskData({
+      id: "",
+      title: "",
+      assigned_to: [], // Empty array for assignment
+      created_at: null, // Null date for new entries
+      updated_at: null, // Null for new entries
+      status: null, // Default to null or "Incomplete"
+    });
+  };
+  
 
   const handleCloseDeleteModal = () => {
     setTaskToDelete("");
     setDeleteModal(false);
+    setDeleteModal(false);
+    setItemToDelete("");
+    setItemType(null);
   };
 
   const handleDelete = async () => {
-    try {
+    if(itemToDelete){
+
+ try {
       const userData = localStorage.getItem("userData");
 
       if (userData) {
@@ -213,11 +300,28 @@ const handleOpenSecondModal = async (taskId: string) => {
         if (parsedUserData && parsedUserData.id && taskToDelete) {
           const userId = parsedUserData.id;
 
+          if(itemType === 'task'){
+            const response = await axios.delete(
+              `http://localhost:8000/api/delete-task/${boardId}/${taskToDelete}/`
+            );
+            console.dir("task deleted sucessfully");
+            if (response.status === 201) {
+              // Fetch updated tasks
+              triggerTaskDeletedToast();
+              const updatedTasksResponse = await axios.get(
+                `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
+              );
+              setTasks(updatedTasksResponse.data.tasks);
+              
+              handleCloseDeleteModal();
+            }
+          }
+        else if(itemType === 'subtask'){
           const response = await axios.delete(
-            `http://localhost:8000/api/delete-task/${boardId}/${taskToDelete}/`
+            `http://localhost:8000/api/subtasks/delete/${itemToDelete}/`
           );
-          console.dir("task deleted sucessfully");
-          if (response.status === 201) {
+          console.dir(" sub task deleted sucessfully");
+          if (response.status === 201 || response.status === 200) {
             // Fetch updated tasks
             triggerTaskDeletedToast();
             const updatedTasksResponse = await axios.get(
@@ -228,12 +332,21 @@ const handleOpenSecondModal = async (taskId: string) => {
             handleCloseDeleteModal();
           }
         }
+
+         
+        }
       }
     } catch (error) {
       console.error("Error deleting task:", error);
       alert("Failed to delete task. Please try again.");
     }
+
+    }
+   
   };
+
+
+
 
   const handleAddTask = () => {
     setShowModal(true);
@@ -351,12 +464,35 @@ const handleCloseModal = () => {
     }
   };
 
+
+  const handleEditSubtask = (SubtaskId: string , taskId : string) => {
+    let subtaskToEdit = null;
+    setActiveTaskId(taskId);
+  tasks.some((task) => {
+    const subtask = task.subtasks.find((sub) => sub.id === SubtaskId);
+    if (subtask) {
+      subtaskToEdit = subtask;
+      return true; // Exit loop
+    }
+    return false;
+  });
+
+  console.log("subtask to be edited " , subtaskToEdit)
+  if (subtaskToEdit) {
+    setSubTaskData(subtaskToEdit);
+    setshowsubtaskModal(true);
+  } else {
+    console.log("No subtask found with that ID");
+  }
+  };
+
   return (
     <div className="task-cards-container">
       {/* Modal for Add Task */}
       <Modal show={showModal} onHide={handleCloseModal} centered>
         <Modal.Header closeButton>
-          <Modal.Title>{taskData.id ? "Edit Task" : "Create Task"}</Modal.Title>
+          <Modal.Title>{taskData.id ? "Edit Task for " : "Create Task for"}             {boardname}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <form>
@@ -450,9 +586,9 @@ const handleCloseModal = () => {
       <Modal.Body>
         <form>
           <div className="mb-3">
-            <label htmlFor="subtask-name" className="form-label">
-              Subtask Name
-            </label>
+          <Modal.Header closeButton>
+          <Modal.Title>Create Task</Modal.Title>
+        </Modal.Header>            
             <input
               type="text"
               id="subtask-name"
@@ -526,6 +662,106 @@ const handleCloseModal = () => {
     </Modal>
 
 
+    <Modal show={showsubtaskModal} onHide={handleCloseSecondModal} centered>
+  <Modal.Header closeButton>
+    <Modal.Title>
+      {subtaskData.id ? "Edit Subtask" : "Create Subtask"}
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    <form>
+      {/* Subtask Name */}
+      <div className="mb-3">
+        <label htmlFor="subtask-name" className="form-label">
+          Subtask Name
+        </label>
+        <input
+          type="text"
+          id="subtask-name"
+          value={subtaskData.title}
+          onChange={(e) => setSubTaskData({ ...subtaskData, title: e.target.value })}
+          className="form-control"
+          placeholder="Enter subtask name"
+        />
+      </div>
+
+      {/* Status */}
+      <div className="mb-3">
+        <label htmlFor="task-status" className="form-label">
+          Status
+        </label>
+        <select
+          id="task-status"
+          name="status"
+          className="form-control"
+          value={subtaskData.status || ""}
+          onChange={(e) => setSubTaskData({ ...subtaskData, status: e.target.value })}
+        >
+          <option value="">Select Status</option>
+          <option value="Incomplete">Incomplete</option>
+          <option value="Complete">Complete</option>
+          <option value="Pending">Pending</option>
+        </select>
+      </div>
+
+      {/* Assign User */}
+      <div className="mb-3">
+        <label htmlFor="subtask-assignee" className="form-label">
+          Assign to User
+        </label>
+        <select
+          id="subtask-assignee"
+          name="assignee"
+          className="form-control"
+          onChange={(e) => {
+            const selectedUser = users.find((user) => user.id === e.target.value);
+            if (selectedUser) {
+              setSubTaskData({
+                ...subtaskData,
+                assigned_to: [...subtaskData.assigned_to, { id: selectedUser.id, username: selectedUser.username }],
+              });
+            }
+          }}
+        >
+          <option value={userId} disabled>
+            Select User
+          </option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.username}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Mark as Done */}
+      <div className="mb-3">
+        <label htmlFor="subtask-status" className="form-label">
+          Mark as Done
+        </label>
+        <input
+          type="checkbox"
+          id="subtask-status"
+          checked={subtaskData.status === "Complete"}
+          onChange={() =>
+            setSubTaskData({ ...subtaskData, status: subtaskData.status === "Complete" ? "Incomplete" : "Complete" })
+          }
+        />
+        <span className="ms-2">Done</span>
+      </div>
+    </form>
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseSecondModal}>
+      Close
+    </Button>
+    <Button variant="primary" onClick={handleSaveSubtask}>
+      Save Changes
+    </Button>
+  </Modal.Footer>
+</Modal>
+
+
       {/* Toast for Task Creation */}
       <ToastContainer position="top-center" className="p-3">
         <Toast
@@ -588,7 +824,7 @@ const handleCloseModal = () => {
         </button>
         <button
           className="btn btn-icon"
-          onClick={() => handleOpenDeleteModal(task.id)}
+          onClick={() => handleOpenDeleteModal(task.id , "task")}
           title="Delete"
         >
           <i className="fa fa-trash"></i>
@@ -636,18 +872,18 @@ const handleCloseModal = () => {
           </h6>
 
           {/* Edit and Delete buttons */}
-          <div className="subtask-actions mt-2" style={{ position: 'absolute', top: '10px', right: '10px' }}>
+          <div className="subtask-actions mt-2 " style={{ position: 'absolute', top: '10px', right: '10px' }}>
             <button
-              className="btn btn-sm btn-info me-2"
-              // onClick={() => handleEditSubtask(subtask.id)} // Handle edit subtask
+              className="btn btn-sm btn-outline-info me-2"
+              onClick={() => handleEditSubtask(subtask.id , task.id)} // Handle edit subtask
               title="Edit"
               style={{ fontSize: '14px', padding: '5px 10px' }}
             >
               <i className="fa fa-pencil"></i>
             </button>
             <button
-              className="btn btn-sm btn-danger"
-              // onClick={() => handleDeleteSubtask(subtask.id)} // Handle delete subtask
+              className="btn btn-sm btn-outline-danger"
+              onClick={() => handleOpenDeleteModal(subtask.id , "subtask")}
               title="Delete"
               style={{ fontSize: '14px', padding: '5px 10px' }}
             >
@@ -736,24 +972,29 @@ const handleCloseModal = () => {
           </div>
         </div>
 
- {/* Modal for Confirm Delete */}
- <Modal show={deleteModal} onHide={handleCloseDeleteModal} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>Are you sure you want to delete this task?</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseDeleteModal}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      
+{/* Modal for Confirm Delete */}
+<Modal show={deleteModal} onHide={handleCloseDeleteModal} centered>
+  <Modal.Header closeButton>
+    <Modal.Title>Confirm Delete</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {itemType == 'task' ? (
+      <p>Are you sure you want to delete this task?</p>
+    ) : (
+      <p>Are you sure you want to delete this subtask?</p>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={handleCloseDeleteModal}>
+      Cancel
+    </Button>
+    <Button variant="danger" onClick={handleDelete}>
+      Delete
+    </Button>
+  </Modal.Footer>
+</Modal>
+
+
       
       </div>
     </div>
