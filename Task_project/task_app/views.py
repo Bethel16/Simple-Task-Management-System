@@ -122,6 +122,9 @@ def login_view(request):
     return JsonResponse({'error': 'POST request required'}, status=400)
 
 
+from django.http import JsonResponse
+from .models import Task, SubTask
+
 def user_task_list(request, user_id, board_id):
     if request.method == "GET":
         # Filter tasks by user_id and board_id
@@ -142,7 +145,13 @@ def user_task_list(request, user_id, board_id):
                     'id': subtask.id,
                     'title': subtask.title,
                     'created_at': subtask.created_at,
-                    'updated_at': subtask.updated_at
+                    'updated_at': subtask.updated_at,
+                    # Include the single assigned user for the subtask
+                    'assigned_user': {
+                        'id': subtask.assigned_to.id,
+                        'username': subtask.assigned_to.username,
+                        'email': subtask.assigned_to.email
+                    } if subtask.assigned_to.exists() else None  # Handle case if no user is assigned
                 }
                 for subtask in task.subtasks.all()
             ]
@@ -153,7 +162,6 @@ def user_task_list(request, user_id, board_id):
         }, status=200)  # Return status 200 for successful response
 
     return JsonResponse({'error': 'GET request required'}, status=400)
-
 
 @csrf_exempt
 def create_task_view(request, boardId):

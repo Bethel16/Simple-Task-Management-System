@@ -178,7 +178,6 @@ const handleOpenSecondModal = async (taskId: string) => {
               `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
             );
             setTasks(updatedTasksResponse.data.tasks);
-  
             // Reset state
             setshowsubtaskModal(false);
             setSubTaskData({
@@ -228,7 +227,7 @@ const handleOpenSecondModal = async (taskId: string) => {
               );
   
               setTasks(response.data.tasks); // Set fetched tasks for the board
-              console.log(tasks)
+              console.log(response)
             }
              else {
               console.error("Board ID not found.");
@@ -413,6 +412,8 @@ const handleCloseModal = () => {
                 `http://localhost:8000/api/board-tasks/${boardId}/user/${userId}/`
               );
               setTasks(updatedTasksResponse.data.tasks);
+              console.log("updatedSubtask" , updatedTasksResponse);
+
               setShowModal(false);
               setTimeout(() => {
                 setTaskToast(false);

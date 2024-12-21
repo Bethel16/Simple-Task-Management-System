@@ -33,7 +33,7 @@ const NavBar: React.FC<NavBarProps> = ({ sidebarWidth, isDarkMode }) => {
         </a>
 
         {/* Search Bar */}
-        <form className="d-flex">
+        {/* <form className="d-flex">
           <input
             type="text"
             className={`form-control me-2 ${isDarkMode ? "bg-secondary text-white" : ""}`}
@@ -42,7 +42,7 @@ const NavBar: React.FC<NavBarProps> = ({ sidebarWidth, isDarkMode }) => {
           <button className={`btn btn-outline-${isDarkMode ? "light" : "dark"}`} type="submit">
             Search
           </button>
-        </form>
+        </form> */}
       </div>
     </nav>
   );

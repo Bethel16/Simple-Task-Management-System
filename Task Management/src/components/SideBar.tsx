@@ -48,6 +48,7 @@ const SideBar: React.FC<SideBarProps> = ({
   const [taskToast, setTaskToast] = useState<boolean>(false);
   const [showProfileEdit, setshowProfileEdit] = useState(false);
   const [editProfileData, setEditProfileData] = useState<Profile | null>(null);
+  const [profileImage, setProfileImage] = useState<File | null>(null); // State to store the uploaded image
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -62,7 +63,7 @@ const SideBar: React.FC<SideBarProps> = ({
     const storedProfile = localStorage.getItem("userData");
     if (storedProfile) {
       const parsedProfile = JSON.parse(storedProfile) as UserProfileResponse;
-      console.log(parsedProfile);
+      console.log("parsedProfile" , parsedProfile);
       console.log(parsedProfile.profile)
       setEditProfileData(parsedProfile.profile);
     }
@@ -104,13 +105,8 @@ const SideBar: React.FC<SideBarProps> = ({
   };
 
 
-  const handleInpuProfiletChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditProfileData((prevData) =>
-      prevData ? { ...prevData, [name]: value } : null
-    );
-  };
-  
+   // Handle input changes for profile fields
+
   useEffect(() => {
     const storedProfile = localStorage.getItem("userData");
     if (storedProfile) {
@@ -149,28 +145,26 @@ const SideBar: React.FC<SideBarProps> = ({
     setNewBoardTitle(e.target.value);
   };
 
-
-  const handleSaveProfile = async () => {
-    if (editProfileData) {
-      try {
-        const response = await axios.put(
-          "http://localhost:8000/api/update-profile/", // Replace with your API URL
-          editProfileData,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        localStorage.setItem("userData", JSON.stringify(response.data));
-        setProfile(response.data); // Update profile state
-        setEditProfileData(response.data.profile); // Sync updated data in modal
-        setTaskToast(true); // Show toast
-        handleEditCloseModal(); // Close the modal
-      } catch (error) {
-        console.error("Error updating profile:", error);
-      }
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; // Get the first file
+    if (file) {
+      setProfileImage(file); // Store the uploaded image file
     }
+  };
+
+
+  const handleSaveProfile = () => {
+    if (editProfileData) {
+      // If an image was uploaded, replace the profile_image URL with the new file (you can upload it to your server here)
+      if (profileImage) {
+        // Example: You might want to send the file to your server here for saving.
+        console.log("Profile Image uploaded:", profileImage);
+      }
+      
+      console.log("Profile updated:", editProfileData);
+      // Implement logic to update the profile data here (e.g., call an API to save the changes)
+    }
+    handleEditCloseModal();
   };
 
   const generateAvatar = (email: string | null) => {
@@ -232,7 +226,7 @@ const SideBar: React.FC<SideBarProps> = ({
     <img
       src={
         profile.profile.profile_image
-          ? `http://localhost:8000/${profile.profile.profile_image}`
+          ? `http://localhost:8000/${profile.profile.profile_image}/`
           : generateAvatar(profile.profile.email)
       }
       alt="Profile"
@@ -425,47 +419,91 @@ const SideBar: React.FC<SideBarProps> = ({
           <Modal.Title>Edit Profile</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <form>
-            <div className="mb-3">
-              <label htmlFor="first_name" className="form-label">
-                First Name
-              </label>
-              <input
-                type="text"
-                id="first_name"
-                name="first_name"
-                className="form-control"
-                value={editProfileData?.bio || ""}
-                onChange={handleInpuProfiletChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="last_name" className="form-label">
-                Last Name
-              </label>
-              <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                className="form-control"
-                value={editProfileData?.last_name || ""}
-                onChange={handleInpuProfiletChange}
-              />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className="form-control"
-                value={editProfileData?.email || ""}
-                onChange={handleInpuProfiletChange}
-              />
-            </div>
-          </form>
+          {profile ? (
+            <form>
+              {/* <div className="mb-3">
+                <label htmlFor="first_name" className="form-label">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  id="first_name"
+                  name="first_name"
+                  className="form-control"
+                  value={profile.first_name || ""}
+                  onChange={handleInpuProfiletChange}
+                />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="last_name" className="form-label">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  id="last_name"
+                  name="last_name"
+                  className="form-control"
+                  value={profile.last_name || ""}
+                  onChange={handleInpuProfiletChange}
+                />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="email" className="form-label">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  className="form-control"
+                  value={profile.email || ""}
+                  onChange={handleInpuProfiletChange}
+                />
+              </div>
+              <div className="mb-3">
+                <label htmlFor="bio" className="form-label">
+                  Bio
+                </label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  className="form-control"
+                  value={profile.profile.bio || ""}
+                  onChange={handleInpuProfiletChange}
+                ></textarea>
+              </div> 
+              
+               <div className="mb-3">
+                <label htmlFor="username" className="form-label">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  className="form-control"
+                  value={profile.username || ""}
+                  onChange={handleInpuProfiletChange}
+                />
+              </div>*/}
+              <div className="mb-3">
+                <label htmlFor="profile_image" className="form-label">
+                  Profile Image
+                </label>
+                {/* Allow user to upload a new profile image */}
+                <input
+                  type="file"
+                  id="profile_image"
+                  name="profile_image"
+                  className="form-control"
+                  onChange={handleProfileImageChange} // Handle the file change
+                />
+              </div>
+             
+            </form>
+          ) : (
+            <p>Loading profile...</p>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleEditCloseModal}>

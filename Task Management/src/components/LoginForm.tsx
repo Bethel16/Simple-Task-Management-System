@@ -80,8 +80,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
         <button type="submit" className="btn btn-primary">
           Login
         </button>
-        <a href="#" className="forgot">
-          Forgot your password?
+        <a href="/signup" className="forgot">
+        Don't Have an Account? Sign Up
         </a>
       </form>
       <button className="btn dark-mode-toggle" onClick={toggleDarkMode}>
